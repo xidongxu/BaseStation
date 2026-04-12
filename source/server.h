@@ -2,9 +2,10 @@
 
 #include "asio.hpp"
 #include "client.h"
-#include <string>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <iostream>
 
 class server {
 public:
