@@ -19,6 +19,18 @@ LogStream& LogStream::operator<<(EndlType manip) {
     return *this;
 }
 
+LogStream& LogStream::hex(const uint8_t* data, size_t len) {
+    std::ostringstream oss;
+    oss << "[hex] ";
+    oss << std::hex << std::setfill('0');
+    for (size_t i = 0; i < len; ++i) {
+        oss << std::setw(2) << static_cast<int>(data[i]) << " ";
+    }
+    oss << std::dec;
+    m_buffer << oss.str();
+    return *this;
+}
+
 Logger& Logger::instance() {
     static Logger instance("app.log");
     return instance;
@@ -61,11 +73,11 @@ std::string Logger::getThread() {
 
 std::string Logger::getLevel(Level level) {
     switch (level) {
-    case Level::INFO: return "INFO";
-    case Level::WARNING: return "WARN";
-    case Level::ERROR: return "ERROR";
+    case Level::INFO: return "I";
+    case Level::WARN: return "W";
+    case Level::ERR : return "E";
     }
-    return "UNKNOWN";
+    return "U";
 }
 
 std::string Logger::getTime() {

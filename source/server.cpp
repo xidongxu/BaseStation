@@ -3,6 +3,7 @@
 #include "asio.hpp"
 #include "cJSON.h"
 #include "server.h"
+#include "logger.h"
 
 using namespace std;
 using asio::ip::tcp;
@@ -35,7 +36,7 @@ void server::accept() {
                 auto session = std::make_shared<client>(std::move(socket));
                 session->start();
             } else {
-                std::cerr << "Accept error: " << error.message() << std::endl;
+                LogError() << "Accept error: " << error.message();
             }
             accept();
         });

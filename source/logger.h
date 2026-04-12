@@ -2,6 +2,7 @@
 
 #include <ctime>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <sstream>
@@ -10,7 +11,7 @@
 class Logger;
 class LogStream {
 public:
-    enum class Level { INFO, WARNING, ERROR };
+    enum Level { INFO = 0, WARN = 1, ERR = 2 };
     LogStream(Logger& logger, Level level);
     ~LogStream();
     template<typename T>
@@ -20,6 +21,12 @@ public:
     }
     typedef std::ostream& (*EndlType)(std::ostream&);
     LogStream& operator<<(EndlType manip);
+
+    template<size_t N>
+    LogStream& operator<<(const std::array<uint8_t, N>& arr) {
+        return hex(arr.data(), N);
+    }
+    LogStream& hex(const uint8_t* data, size_t len);
 
 private:
     Level m_level{};
@@ -50,6 +57,6 @@ private:
     std::ofstream m_file{};
 };
 
-#define logInfo()  Logger::instance().log(Logger::Level::INFO)
-#define logWarn()  Logger::instance().log(Logger::Level::WARNING)
-#define logError() Logger::instance().log(Logger::Level::ERROR)
+#define LogInfo()  Logger::instance().log(Logger::Level::INFO)
+#define LogWarn()  Logger::instance().log(Logger::Level::WARN)
+#define LogError() Logger::instance().log(Logger::Level::ERR)

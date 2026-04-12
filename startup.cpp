@@ -32,11 +32,11 @@ int main(int argc, char* argv[]) {
         | lyra::opt(port, "port")["-p"]["--port"]("Set server port number");
     auto res = arg.parse({ argc, argv });
     if (!res) {
-        logInfo() << "Arg parse failed: " << res.message();
+        LogInfo() << "Arg parse failed: " << res.message();
         return -1;
     }
     if (help) {
-        logInfo() << arg;
+        LogInfo() << arg;
         return 0;
     }
     auto &server = server::instance();

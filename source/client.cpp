@@ -1,10 +1,10 @@
 ﻿#include <chrono>
-#include <iostream>
 #include <thread>
 #include "asio.hpp"
 #include "cJSON.h"
 #include "client.h"
 #include "processor.h"
+#include "logger.h"
 
 using namespace std;
 using asio::ip::tcp;
@@ -80,7 +80,7 @@ void client::do_disconnect(const asio::error_code& error) {
         break;
     default:
         reason = Reason::Error;
-        std::cerr << "Unexpected error: " << error.message() << std::endl;
+        LogInfo() << "socket disconnect error: " << error.message();
         break;
     }
     close(reason);

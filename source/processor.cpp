@@ -3,7 +3,7 @@
 #include "cJSON.h"
 #include "server.h"
 #include "processor.h"
-#include <iostream>
+#include "logger.h"
 
 using namespace asio;
 using namespace std;
@@ -52,10 +52,7 @@ void MessageProcessor::process() {
     while (!m_quit) {
         auto message = fetch();
         if (message) {
-            for (std::size_t i = 0; i < 10; ++i) {
-                std::cout << std::hex << static_cast<int>(message->data[i]) << " ";
-            }
-            std::cout << std::dec << std::endl;
+			LogInfo().hex(message->data.data(), 10);
         }
     }
     cleanup();
