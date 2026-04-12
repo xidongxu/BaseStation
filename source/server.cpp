@@ -1,9 +1,9 @@
 ﻿#include <chrono>
 #include <thread>
-#include "cJSON.h"
-#include "asio.hpp"
-#include "server.h"
 #include <iostream>
+#include "asio.hpp"
+#include "cJSON.h"
+#include "server.h"
 
 using namespace std;
 using asio::ip::tcp;
@@ -34,13 +34,7 @@ void server::accept() {
         [this](asio::error_code error, tcp::socket socket) {
             if (!error) {
                 auto session = std::make_shared<client>(std::move(socket));
-                session->start(
-                    [this](client::Reason reason, std::string number) {
-                        if (number.empty()) {
-                            return;
-                        }
-                        remove(number);
-                    });
+                session->start();
             } else {
                 std::cerr << "Accept error: " << error.message() << std::endl;
             }

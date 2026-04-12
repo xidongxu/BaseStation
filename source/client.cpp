@@ -25,8 +25,7 @@ client::~client() {
     close(Reason::Manual);
 }
 
-void client::start(Disconnect disconnect) {
-    m_disconnect = disconnect;
+void client::start() {
     do_read();
 }
 
@@ -38,10 +37,6 @@ void client::close(Reason reason) {
     m_socket.shutdown(tcp::socket::shutdown_both, error);
     m_socket.close(error);
     m_connected = false;
-
-    if (m_disconnect) {
-        m_disconnect(reason, m_number);
-    }
 }
 
 void client::write(const std::string& message) {

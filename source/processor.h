@@ -1,9 +1,10 @@
 ﻿#pragma once
 
-#include <string>
+#include <array>
+#include <deque>
 #include <memory>
 #include <mutex>
-#include <deque>
+#include <string>
 
 class MessageBuffer {
 public:

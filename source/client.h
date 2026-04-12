@@ -14,12 +14,11 @@ public:
         Error,
         Manual
     };
-    using Disconnect = std::function<void(Reason, std::string)>;
 
     explicit client(asio::ip::tcp::socket socket);
     ~client();
 
-    void start(Disconnect disconnect);
+    void start();
     void close(Reason reason);
     void write(const std::string& message);
 
@@ -35,5 +34,4 @@ private:
     std::string m_address{};
     std::string m_number{};
     bool m_connected{};
-    Disconnect m_disconnect{};
 };
