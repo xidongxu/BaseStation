@@ -50,7 +50,7 @@ MessageProcessor::~MessageProcessor() {
 
 void MessageProcessor::process() {
     while (!m_quit) {
-		auto message = fetch();
+        auto message = fetch();
         if (message) {
             for (std::size_t i = 0; i < 10; ++i) {
                 std::cout << std::hex << static_cast<int>(message->data[i]) << " ";

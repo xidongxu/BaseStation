@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     auto &server = server::instance();
-	server.start(port);
+    server.start(port);
 
     MainScheduler scheduler;
     Cli cli(std::move(menu()));
@@ -51,5 +51,5 @@ int main(int argc, char* argv[]) {
     scheduler.Run();
 
     server.close();
-	return 0;
+    return 0;
 }
