@@ -10,19 +10,15 @@ using namespace std;
 using asio::ip::tcp;
 
 client::client(tcp::socket socket) : m_socket(std::move(socket)), m_timer(asio::system_executor()) {
-    try {
-        m_address = m_socket.remote_endpoint().address().to_string();
-        m_port = m_socket.remote_endpoint().port();
-        m_connected = true;
-    }
-    catch (const std::exception& error) {
-        m_address = "unkonwn";
-        m_port = 0;
-    }
+    m_address = m_socket.remote_endpoint().address().to_string();
+    m_port = m_socket.remote_endpoint().port();
+    m_connected = true;
+    LogInfo() << "client:" << this << "create";
 }
 
 client::~client() {
     close(Reason::Manual);
+    LogInfo() << "client:" << this << "destory";
 }
 
 void client::start() {
@@ -46,10 +42,11 @@ void client::write(const std::string& message) {
 }
 
 void client::do_timeout() {
-    m_timer.expires_after(3s);
-    m_timer.async_wait([this](const asio::error_code& error) {
+    m_timer.expires_after(9s);
+    m_timer.async_wait(
+        [this](const asio::error_code& error) {
             if (!error) {
-                LogInfo() << "client timer has timeout";
+                LogInfo() << "client:" << this << "timeout";
                 close(Reason::Manual);
             }
         }
@@ -83,17 +80,20 @@ void client::do_disconnect(const asio::error_code& error) {
     switch (error.value()) {
     case asio::error::eof:
         reason = Reason::Clean;
+        LogInfo() << "client:" << this << "closed by client";
         break;
     case asio::error::connection_reset:
     case asio::error::connection_aborted:
+        LogInfo() << "client:" << this << "reset by client";
         reason = Reason::Reset;
         break;
     case asio::error::operation_aborted:
+        LogInfo() << "client:" << this << "aborted by server";
         reason = Reason::Manual;
         break;
     default:
         reason = Reason::Error;
-        LogInfo() << "socket disconnect error: " << error.message();
+        LogInfo() << "client:" << this << "has error:" << error.message();
         break;
     }
     close(reason);

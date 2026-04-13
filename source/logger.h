@@ -16,7 +16,7 @@ public:
     ~LogStream();
     template<typename T>
     LogStream& operator<<(const T& msg) {
-        m_buffer << msg;
+        m_buffer << " " << msg;
         return *this;
     }
     typedef std::ostream& (*EndlType)(std::ostream&);
