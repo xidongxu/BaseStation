@@ -45,12 +45,18 @@ void server::accept() {
 
 void server::append(std::string number, std::shared_ptr<client> session) {
     std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_sessions.contains(number))
+        return;
     m_sessions.insert({ number, session });
+    LogInfo() << "client:" << number << "login";
 }
 
 void server::remove(std::string number) {
     std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_sessions.contains(number))
+        return;
     if (auto it = m_sessions.find(number); it != m_sessions.end()) {
         m_sessions.erase(it);
     }
+    LogInfo() << "client:" << number << "logout";
 }

@@ -4,6 +4,7 @@
 #include "cJSON.h"
 #include "client.h"
 #include "processor.h"
+#include "server.h"
 #include "logger.h"
 
 using namespace std;
@@ -62,6 +63,10 @@ void client::do_receive() {
         [this, self](const asio::error_code& error, std::size_t bytes) {
             if (!error) {
                 auto message = std::make_unique<Message>(m_buffer);
+                if (message->is_heart()) {
+                    m_number = message->from();
+                    server::instance().append(message->from(), self);
+                }
                 MessageProcessor::instance().append(message);
                 do_timeout();
                 do_receive();

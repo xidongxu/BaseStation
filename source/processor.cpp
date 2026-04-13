@@ -67,6 +67,7 @@ Message::Message(const std::array<uint8_t, 1024>& data) : m_valid(false), m_data
         cJSON* item = cJSON_GetArrayItem(content, i);
         m_content.push_back(static_cast<uint8_t>(item->valueint));
     }
+    m_valid = true;
     cJSON_Delete(message);
 }
 
@@ -75,15 +76,13 @@ Message::Message(int id, std::string type,
     std::vector<std::string> to, 
     std::string func, 
     std::vector<uint8_t> content, int result) {
-
-    auto now = std::chrono::system_clock::now();
-    auto duration = now.time_since_epoch();
-    auto second = std::chrono::duration_cast<std::chrono::seconds>(duration);
+    auto durations = std::chrono::system_clock::now().time_since_epoch();
+    auto timestamp = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(durations).count());
 
     m_version = "1.0";
     m_id = id;
     m_type = type;
-    m_timestamp = second.count();
+    m_timestamp = timestamp;
     m_from = from;
     m_to = to;
     m_func = func;
@@ -129,6 +128,16 @@ Message::Message(int id, std::string type,
 }
 
 Message::~Message() = default;
+
+bool Message::is_heart() const {
+    if (!m_valid) {
+        return false;
+    }
+    if (m_type == "REQ" && m_func == "HEART") {
+        return true;
+    }
+    return false;
+}
 
 MessageProcessor::MessageProcessor() {
     m_thread = std::thread(&MessageProcessor::process, this);

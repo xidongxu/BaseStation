@@ -26,6 +26,7 @@ public:
     std::string func() { return m_func; }
     std::vector<uint8_t>& content() { return m_content; }
     int result() const { return m_result; }
+    bool is_heart() const;
 
 private:
     bool m_valid{};
