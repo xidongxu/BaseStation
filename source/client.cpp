@@ -58,10 +58,11 @@ void client::do_receive() {
     asio::async_read(
         m_socket,
         asio::buffer(m_buffer, m_buffer.size()),
-        asio::transfer_exactly(10),
+        asio::transfer_exactly(1024),
         [this, self](const asio::error_code& error, std::size_t bytes) {
             if (!error) {
-                MessageProcessor::instance().append(m_buffer);
+                auto message = std::make_unique<Message>(m_buffer);
+                MessageProcessor::instance().append(message);
                 do_timeout();
                 do_receive();
             } else {

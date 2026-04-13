@@ -38,7 +38,7 @@
     },
     "payload": {
         "func": "HEART" | "OFFLINE" | "SEND_MESSAGE" | "RECV_MESSAGE" | "MAKE_CALL" | "END_CALL" | "REJECT_CALL",
-        "data": {}, // 业务携带的数据内容
+        "content": {}, // 业务携带的数据内容
         "result": 0 // 业务处理结果
     }
 }
@@ -76,13 +76,13 @@
           "id": 0,
           "type": "REQ",
           "timestamp": 1617781300,
-          "from": 16100000000,
-          "to": [0]
+          "from": "16100000000",
+          "to": ["0"]
       },
       "payload": {
-          "func": "OFFLINE" | "HEART",
-          "data": {}, // 业务携带的数据内容
-          "result": 0 // 业务处理结果
+          "func": "HEART",
+          "content": [0],
+          "result": 0
       }
   }
   ```
@@ -96,13 +96,13 @@
             "id": 0,
             "type": "RSP",
             "timestamp": 1617781310,
-            "from": 0,
-            "to": [16100000000]
+            "from": "0",
+            "to": ["16100000000"]
       },
       "payload": {
-          "func": "OFFLINE" | "HEART",
-          "data": {}, // 业务携带的数据内容
-          "result": 0 // 业务处理结果
+          "func": "HEART",
+          "content": [0],
+          "result": 0
       }
   }
   ```
