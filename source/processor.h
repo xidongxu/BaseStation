@@ -5,17 +5,22 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include "cJSON.h"
 
 class Message {
 public:
     Message(const std::array<uint8_t, 1024>& data);
-    ~Message() = default;
+    Message(int id, std::string type,
+            std::string from,
+            std::vector<std::string> to,
+            std::string func,
+            std::vector<uint8_t> content, int result);
+    ~Message();
+
     bool valid() const { return m_valid; };
     std::string version() const { return m_version; };
     int id() const { return m_id; }
-    uint32_t timestamp() const { return m_timestamp; }
     std::string type() { return m_type; }
+    uint32_t timestamp() const { return m_timestamp; }
     std::string from() { return m_from; }
     std::vector<std::string>& to() { return m_to; }
     std::string func() { return m_func; }
@@ -24,15 +29,15 @@ public:
 
 private:
     bool m_valid{};
+    std::string m_version{};
     int m_id{};
-    uint32_t m_timestamp{};
     std::string m_type{};
+    uint32_t m_timestamp{};
     std::string m_from{};
     std::vector<std::string> m_to{};
-    std::string m_version{};
     std::string m_func{};
-    int m_result{};
     std::vector<uint8_t> m_content{};
+    int m_result{};
     std::array<uint8_t, 1024> m_data{};
 };
 

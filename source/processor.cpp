@@ -5,7 +5,6 @@
 #include "processor.h"
 #include "logger.h"
 
-using namespace asio;
 using namespace std;
 
 Message::Message(const std::array<uint8_t, 1024>& data) : m_valid(false), m_data(data) {
@@ -71,6 +70,66 @@ Message::Message(const std::array<uint8_t, 1024>& data) : m_valid(false), m_data
     cJSON_Delete(message);
 }
 
+Message::Message(int id, std::string type, 
+    std::string from, 
+    std::vector<std::string> to, 
+    std::string func, 
+    std::vector<uint8_t> content, int result) {
+
+    auto now = std::chrono::system_clock::now();
+    auto duration = now.time_since_epoch();
+    auto second = std::chrono::duration_cast<std::chrono::seconds>(duration);
+
+    m_version = "1.0";
+    m_id = id;
+    m_type = type;
+    m_timestamp = second.count();
+    m_from = from;
+    m_to = to;
+    m_func = func;
+    m_content = content;
+    m_result = result;
+    m_valid = true;
+
+    cJSON* message = cJSON_CreateObject();
+    cJSON* header = cJSON_CreateObject();
+    cJSON* payload = cJSON_CreateObject();
+
+    cJSON_AddStringToObject(header, "version", m_version.data());
+    cJSON_AddNumberToObject(header, "id", m_id);
+    cJSON_AddStringToObject(header, "type", m_type.data());
+    cJSON_AddNumberToObject(header, "timestamp", m_timestamp);
+    cJSON_AddStringToObject(header, "from", m_from.data());
+
+    cJSON* to_array = cJSON_CreateArray();
+    for (int i = 0; i < m_to.size(); i++) {
+        cJSON_AddItemToArray(to_array, cJSON_CreateString(m_to.at(i).data()));
+    }
+    cJSON_AddItemToObject(header, "to", to_array);
+    cJSON_AddItemToObject(message, "header", header);
+    
+    cJSON_AddStringToObject(payload, "func", m_func.data());
+    cJSON* content_array = cJSON_CreateArray();
+    for (int i = 0; i < m_content.size(); i++) {
+        cJSON_AddItemToArray(content_array, cJSON_CreateNumber(m_content.at(i)));
+    }
+    cJSON_AddItemToObject(payload, "content", content_array);
+    cJSON_AddNumberToObject(payload, "result", m_result);
+
+    cJSON_AddItemToObject(message, "payload", payload);
+    char* json = cJSON_Print(message);
+    m_data.fill(0);
+    m_data[0] = 0x55;
+    m_data[1] = 0x55;
+    memcpy(&m_data[2], json, strnlen(json, 1020));
+    m_data[1022] = 0xFF;
+    m_data[1023] = 0xFF;
+    cJSON_Delete(message);
+    cJSON_free(json);
+}
+
+Message::~Message() = default;
+
 MessageProcessor::MessageProcessor() {
     m_thread = std::thread(&MessageProcessor::process, this);
 }
@@ -86,7 +145,7 @@ void MessageProcessor::process() {
     LogInfo() << "Processor start";
     while (!m_quit) {
         auto message = fetch();
-        if (message) {
+        if (message && message->valid()) {
             LogInfo() << "Message from:" << message->from();
         }
     }
