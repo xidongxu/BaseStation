@@ -9,7 +9,7 @@
 using namespace std;
 using asio::ip::tcp;
 
-client::client(tcp::socket socket) : m_socket(std::move(socket)) {
+client::client(tcp::socket socket) : m_socket(std::move(socket)), m_timer(asio::system_executor()) {
     try {
         m_address = m_socket.remote_endpoint().address().to_string();
         m_port = m_socket.remote_endpoint().port();
@@ -26,6 +26,7 @@ client::~client() {
 }
 
 void client::start() {
+    do_timeout();
     do_read();
 }
 
@@ -34,6 +35,7 @@ void client::close(Reason reason) {
         return;
     }
     asio::error_code error;
+    m_timer.cancel();
     m_socket.shutdown(tcp::socket::shutdown_both, error);
     m_socket.close(error);
     m_connected = false;
@@ -41,6 +43,17 @@ void client::close(Reason reason) {
 
 void client::write(const std::string& message) {
     do_send(message);
+}
+
+void client::do_timeout() {
+    m_timer.expires_after(3s);
+    m_timer.async_wait([this](const asio::error_code& error) {
+            if (!error) {
+                LogInfo() << "client timer has timeout";
+                close(Reason::Manual);
+            }
+        }
+    );
 }
 
 void client::do_read() {
@@ -52,9 +65,9 @@ void client::do_read() {
         [this, self](const asio::error_code& error, std::size_t bytes) {
             if (!error) {
                 MessageProcessor::instance().append(m_buffer);
+                do_timeout();
                 do_read();
-            }
-            else {
+            } else {
                 do_disconnect(error);
             }
         }

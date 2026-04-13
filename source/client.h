@@ -23,11 +23,13 @@ public:
     void write(const std::string& message);
 
 private:
+    void do_timeout();
     void do_read();
     void do_send(const std::string& message);
     void do_disconnect(const asio::error_code& error);
 
 private:
+    asio::steady_timer m_timer;
     asio::ip::tcp::socket m_socket;
     std::array<uint8_t, 1024> m_buffer{};
     uint16_t m_port{};
