@@ -23,7 +23,7 @@ client::~client() {
 
 void client::start() {
     do_timeout();
-    do_read();
+    do_receive();
 }
 
 void client::close(Reason reason) {
@@ -38,7 +38,7 @@ void client::close(Reason reason) {
 }
 
 void client::write(const std::string& message) {
-    do_send(message);
+
 }
 
 void client::do_timeout() {
@@ -53,7 +53,7 @@ void client::do_timeout() {
     );
 }
 
-void client::do_read() {
+void client::do_receive() {
     auto self(shared_from_this());
     asio::async_read(
         m_socket,
@@ -63,16 +63,12 @@ void client::do_read() {
             if (!error) {
                 MessageProcessor::instance().append(m_buffer);
                 do_timeout();
-                do_read();
+                do_receive();
             } else {
                 do_disconnect(error);
             }
         }
     );
-}
-
-void client::do_send(const std::string& message) {
-
 }
 
 void client::do_disconnect(const asio::error_code& error) {

@@ -49,10 +49,11 @@ MessageProcessor::~MessageProcessor() {
 }
 
 void MessageProcessor::process() {
+    LogInfo() << "Processor start";
     while (!m_quit) {
         auto message = fetch();
         if (message) {
-			LogInfo().hex(message->data.data(), 10);
+            LogInfo().hex(message->data.data(), 10);
         }
     }
     cleanup();

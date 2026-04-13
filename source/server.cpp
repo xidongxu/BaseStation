@@ -11,7 +11,8 @@ using asio::ip::tcp;
 void server::start(uint16_t port) {
     m_acceptor = std::make_unique<tcp::acceptor>(m_context, tcp::endpoint(tcp::v4(), port));
     accept();
-    m_thread = std::thread([this]() {
+    m_thread = std::thread([this, port]() {
+        LogInfo() << "Server start, listen port:" << port;
         m_context.run();
     });
 }

@@ -24,8 +24,7 @@ public:
 
 private:
     void do_timeout();
-    void do_read();
-    void do_send(const std::string& message);
+    void do_receive();
     void do_disconnect(const asio::error_code& error);
 
 private:

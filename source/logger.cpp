@@ -21,7 +21,7 @@ LogStream& LogStream::operator<<(EndlType manip) {
 
 LogStream& LogStream::hex(const uint8_t* data, size_t len) {
     std::ostringstream oss;
-    oss << "[hex] ";
+    oss << " [hex] ";
     oss << std::hex << std::setfill('0');
     for (size_t i = 0; i < len; ++i) {
         oss << std::setw(2) << static_cast<int>(data[i]) << " ";
@@ -67,7 +67,9 @@ void Logger::flush(Level level, const std::string& msg) {
 
 std::string Logger::getThread() {
     std::ostringstream oss;
-    oss << std::this_thread::get_id();
+    oss << std::setw(8)
+        << std::setfill('0')
+        << std::this_thread::get_id();
     return oss.str();
 }
 
