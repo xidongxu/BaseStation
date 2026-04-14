@@ -1,8 +1,9 @@
 ﻿#include <chrono>
 #include <thread>
 #include "cJSON.h"
-#include "server.h"
 #include "processor.h"
+#include "server.h"
+
 #include "logger.h"
 
 using namespace std;

@@ -2,9 +2,10 @@
 #include <thread>
 #include "asio.hpp"
 #include "cJSON.h"
-#include "session.h"
 #include "processor.h"
 #include "server.h"
+#include "session.h"
+
 #include "logger.h"
 
 using namespace std;
@@ -13,7 +14,6 @@ using asio::ip::tcp;
 Session::Session(tcp::socket socket, asio::io_context& context) : m_socket(std::move(socket)), m_timer(context) {
     m_address = m_socket.remote_endpoint().address().to_string();
     m_port = m_socket.remote_endpoint().port();
-    m_connected = true;
     LogInfo() << "client:" << this << "create";
 }
 
@@ -28,32 +28,17 @@ void Session::start() {
 }
 
 void Session::close(Reason reason) {
-    if (m_connected == false) {
-        return;
+    if (m_number.empty() == false) {
+        Server::instance().remove(m_number);
     }
     asio::error_code error;
     m_timer.cancel();
     m_socket.shutdown(tcp::socket::shutdown_both, error);
     m_socket.close(error);
-    m_connected = false;
 }
 
 void Session::send(const std::unique_ptr<Message>& message) {
     do_write(message);
-}
-
-void Session::do_write(const std::unique_ptr<Message>& message) {
-    auto self(shared_from_this());
-    asio::async_write(
-        m_socket,
-        asio::buffer(message->raw()),
-        [this, self](const asio::error_code& error, std::size_t bytes) {
-            if (error) {
-                LogInfo() << "Message send error:" << error.message();
-                do_disconnect(error);
-            }
-        }
-    );
 }
 
 void Session::do_timeout() {
@@ -85,6 +70,20 @@ void Session::do_receive() {
                 MessageProcessor::instance().append(message, MessageProcessor::Recv);
                 do_receive();
             } else {
+                do_disconnect(error);
+            }
+        }
+    );
+}
+
+void Session::do_write(const std::unique_ptr<Message>& message) {
+    auto self(shared_from_this());
+    asio::async_write(
+        m_socket,
+        asio::buffer(message->raw()),
+        [this, self](const asio::error_code& error, std::size_t bytes) {
+            if (error) {
+                LogInfo() << "Message send error:" << error.message();
                 do_disconnect(error);
             }
         }

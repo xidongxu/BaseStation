@@ -1,20 +1,14 @@
 ﻿#pragma once
 
-#include "asio.hpp"
-#include <string>
 #include <memory>
 #include <mutex>
+#include <string>
+#include "asio.hpp"
 #include "processor.h"
 
 class Session : public std::enable_shared_from_this<Session> {
 public:
-    enum Reason {
-        Clean,
-        Timeout,
-        Reset,
-        Error,
-        Manual
-    };
+    enum Reason { Clean, Timeout, Reset, Error, Manual };
 
     explicit Session(asio::ip::tcp::socket socket, asio::io_context& context);
     ~Session();
@@ -36,5 +30,4 @@ private:
     uint16_t m_port{};
     std::string m_address{};
     std::string m_number{};
-    bool m_connected{};
 };

@@ -40,7 +40,7 @@ void Logger::setLevel(Level level) {
     m_level = level;
 }
 
-Logger::Logger(const std::string& filename) : m_level(Level::INFO) {
+Logger::Logger(const std::string& filename) : m_level(Level::Info) {
     m_file.open(filename, std::ios::app);
 }
 
@@ -75,9 +75,9 @@ std::string Logger::getThread() {
 
 std::string Logger::getLevel(Level level) {
     switch (level) {
-    case Level::INFO: return "I";
-    case Level::WARN: return "W";
-    case Level::ERR : return "E";
+    case Level::Info: return "I";
+    case Level::Waring: return "W";
+    case Level::Error: return "E";
     }
     return "U";
 }

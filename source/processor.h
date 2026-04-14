@@ -9,6 +9,7 @@
 class Message {
 public:
     using RawData = std::array<uint8_t, 1024>;
+
     Message(const RawData& data);
     Message(int id, std::string type,
             std::string from,
@@ -47,6 +48,7 @@ private:
 class MessageProcessor {
 public:
     enum Type { Recv, Send };
+
     static MessageProcessor& instance() {
         static MessageProcessor instance;
         return instance;
