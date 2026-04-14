@@ -13,7 +13,17 @@ using namespace cli;
 #define LOG_TAG "startup"
 #include "logger.h"
 
-std::unique_ptr<cli::Menu> menu() {
+static void prepare() {
+#ifdef _WIN32
+#include <cstdlib>
+#include <crtdbg.h>
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
+#endif
+}
+
+static std::unique_ptr<cli::Menu> menu() {
     auto rootMenu = make_unique< Menu >("cli");
     rootMenu->Insert(
         "version",
@@ -32,6 +42,7 @@ int main(int argc, char* argv[]) {
     bool version = false;
     uint16_t port = 5566;
 
+    prepare();
     auto arg = lyra::cli()
         | lyra::help(help)["-h"]["--help"]("Show help information")
         | lyra::opt(port, "port")["-p"]["--port"]("Set server port number")
