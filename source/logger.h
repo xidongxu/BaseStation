@@ -8,12 +8,16 @@
 #include <sstream>
 #include <thread>
 
+#ifndef LOG_TAG
+#define LOG_TAG ""
+#endif
+
 class Logger;
 class LogStream {
 public:
     enum Level { Info = 0, Waring = 1, Error = 2 };
 
-    LogStream(Logger& logger, Level level);
+    LogStream(Logger& logger, Level level, const std::string& tag);
     ~LogStream();
     
     template<typename T>
@@ -27,6 +31,7 @@ public:
 private:
     Level m_level{};
     Logger& m_logger;
+    std::string m_tag{};
     std::stringstream m_buffer{};
 };
 
@@ -36,8 +41,8 @@ public:
 
     static Logger& instance();
     void setLevel(Level level);
-    LogStream log(Level level);
-    void flush(Level level, const std::string& msg);
+    LogStream log(Level level, const std::string& tag);
+    void flush(Level level, const std::string& msg, const std::string& tag);
 
 private:
     Logger(const Logger&) = delete;
@@ -54,6 +59,6 @@ private:
     std::ofstream m_file{};
 };
 
-#define LogInfo()  Logger::instance().log(Logger::Level::Info)
-#define LogWarn()  Logger::instance().log(Logger::Level::Waring)
-#define LogError() Logger::instance().log(Logger::Level::Error)
+#define LogInfo()  Logger::instance().log(Logger::Level::Info, LOG_TAG)
+#define LogWarn()  Logger::instance().log(Logger::Level::Waring, LOG_TAG)
+#define LogError() Logger::instance().log(Logger::Level::Error, LOG_TAG)

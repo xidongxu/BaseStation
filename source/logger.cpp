@@ -2,17 +2,17 @@
 
 using namespace std;
 
-LogStream::LogStream(Logger& logger, Level level) : m_logger(logger), m_level(level) {}
+LogStream::LogStream(Logger& logger, Level level, const std::string& tag) : m_logger(logger), m_level(level), m_tag(tag) {}
 
 LogStream::~LogStream() {
     if (!m_buffer.str().empty()) {
-        m_logger.flush(m_level, m_buffer.str());
+        m_logger.flush(m_level, m_buffer.str(), m_tag);
     }
 }
 
 LogStream& LogStream::operator<<(EndlType manip) {
     if (manip == static_cast<EndlType>(&std::endl<char, std::char_traits<char>>)) {
-        m_logger.flush(m_level, m_buffer.str());
+        m_logger.flush(m_level, m_buffer.str(), m_tag);
         m_buffer.str("");
         m_buffer.clear();
     }
@@ -32,7 +32,7 @@ LogStream& LogStream::hex(const uint8_t* data, size_t len) {
 }
 
 Logger& Logger::instance() {
-    static Logger instance("app.log");
+    static Logger instance("BaseStation.log");
     return instance;
 }
 
@@ -50,7 +50,7 @@ Logger::~Logger() {
     }
 }
 
-void Logger::flush(Level level, const std::string& msg) {
+void Logger::flush(Level level, const std::string& msg, const std::string& tag) {
     if (level < m_level) 
         return;
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -58,6 +58,7 @@ void Logger::flush(Level level, const std::string& msg) {
         "[" + getTime() + "]"
         "[" + getLevel(level) + "]"
         "[" + getThread() + "]"
+        + (tag.empty() ? "" : "[" + tag + "]")
         + msg;
     std::cout << finalMsg << std::endl;
     if (m_file.is_open()) {
@@ -75,9 +76,12 @@ std::string Logger::getThread() {
 
 std::string Logger::getLevel(Level level) {
     switch (level) {
-    case Level::Info: return "I";
-    case Level::Waring: return "W";
-    case Level::Error: return "E";
+    case Level::Info: 
+        return "I";
+    case Level::Waring: 
+        return "W";
+    case Level::Error: 
+        return "E";
     }
     return "U";
 }
@@ -95,6 +99,6 @@ std::string Logger::getTime() {
     return buf;
 }
 
-LogStream Logger::log(Level level) {
-    return LogStream(*this, level);
+LogStream Logger::log(Level level, const std::string &tag) {
+    return LogStream(*this, level, tag);
 }

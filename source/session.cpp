@@ -6,6 +6,7 @@
 #include "server.h"
 #include "session.h"
 
+#define LOG_TAG "session"
 #include "logger.h"
 
 using namespace std;
