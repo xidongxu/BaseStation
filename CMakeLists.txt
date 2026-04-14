@@ -1,4 +1,9 @@
-﻿cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.15)
+
+project("BaseStation")
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(WIN32)
     if(NOT DEFINED CMAKE_SYSTEM_VERSION)
@@ -19,9 +24,18 @@ if(WIN32)
     endif()
 endif()
 
-project ("BaseStation")
-add_executable (BaseStation "startup.cpp" "startup.h")
-set_property(TARGET BaseStation PROPERTY CXX_STANDARD 20)
+if(MSVC)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        message(STATUS "Enabling AddressSanitizer for MSVC")
+        add_compile_options(/fsanitize=address)
+        add_link_options(/fsanitize=address)
+        add_compile_options(/Od)
+        add_compile_options(/Zi)
+        add_link_options(/debug)
+    endif()
+endif()
+
+add_executable(BaseStation "startup.cpp" "startup.h")
 
 add_subdirectory(vendor)
 add_subdirectory(source)
