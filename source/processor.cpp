@@ -180,12 +180,12 @@ void MessageProcessor::resolve(std::unique_ptr<Message>& message) {
             std::vector<uint8_t>{}, 
             0
         );
-        append(response, Send);
+        append(Send, response);
         return;
     }
 }
 
-void MessageProcessor::append(std::unique_ptr<Message> &message, Type type) {
+void MessageProcessor::append(Type type, std::unique_ptr<Message> &message) {
     std::lock_guard<std::mutex> lock(m_mutex);
     switch (type) {
     case Recv:

@@ -60,7 +60,7 @@ void Session::do_receive() {
     asio::async_read(
         m_socket,
         asio::buffer(m_buffer, m_buffer.size()),
-        asio::transfer_exactly(1024),
+        asio::transfer_exactly(m_buffer.size()),
         [this, self](const asio::error_code& error, std::size_t bytes) {
             if (!error) {
                 bool result = true;
@@ -75,7 +75,7 @@ void Session::do_receive() {
                     close(Reason::Manual);
                     return;
                 }
-                MessageProcessor::instance().append(message, MessageProcessor::Recv);
+                MessageProcessor::instance().append(MessageProcessor::Recv, message);
                 do_receive();
             } else {
                 do_disconnect(error);

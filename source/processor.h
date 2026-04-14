@@ -57,7 +57,7 @@ public:
     }
     void process();
     void resolve(std::unique_ptr<Message>& message);
-    void append(std::unique_ptr<Message> &message, Type type);
+    void append(Type type, std::unique_ptr<Message> &message);
     std::unique_ptr<Message> fetch(Type type);
     void cleanup(Type type);
     std::size_t size(Type type);

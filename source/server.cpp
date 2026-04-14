@@ -11,10 +11,10 @@ using namespace std;
 using asio::ip::tcp;
 
 void Server::start(uint16_t port) {
+    localhosts(port);
     m_acceptor = std::make_unique<tcp::acceptor>(m_context, tcp::endpoint(tcp::v4(), port));
     accept();
-    m_thread = std::thread([this, port]() {
-        LogInfo() << "Server start, listen port:" << port;
+    m_thread = std::thread([this]() {
         m_context.run();
     });
 }
@@ -78,4 +78,16 @@ bool Server::remove(std::string number) {
     }
     LogInfo() << "client:" << number << "logout";
     return true;
+}
+
+void Server::localhosts(uint16_t port) {
+    tcp::resolver resolver(m_context);
+    auto endpoints = resolver.resolve(asio::ip::host_name(), "");
+    for (auto& endpoint : endpoints) {
+        if (!endpoint.endpoint().address().is_v4()) {
+            continue;
+        }
+        auto address = endpoint.endpoint().address().to_string();
+        LogInfo() << address << ":" << port;
+    }
 }

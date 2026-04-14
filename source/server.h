@@ -27,6 +27,7 @@ private:
     Server& operator=(const Server&) = delete;
     Server(Server&&) = delete;
     Server& operator=(Server&&) = delete;
+    void localhosts(uint16_t port);
 
 private:
     std::mutex m_mutex{};
