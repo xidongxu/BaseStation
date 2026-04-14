@@ -11,11 +11,13 @@ public:
     using RawData = std::array<uint8_t, 1024>;
 
     Message(const RawData& data);
-    Message(int id, std::string type,
+    Message(int id, 
+            std::string type,
             std::string from,
             std::vector<std::string> to,
             std::string func,
-            std::vector<uint8_t> content, int result);
+            std::vector<uint8_t> content, 
+            int result);
     ~Message();
 
     RawData raw() const { return m_data; }

@@ -172,7 +172,15 @@ void MessageProcessor::process() {
 void MessageProcessor::resolve(std::unique_ptr<Message>& message) {
     if (message->is_heart()) {
         LogInfo() << "Message Recv:" << message->from();
-        auto response = std::make_unique<Message>(message->id(), "RESP", "0", std::vector<std::string>{ message->from() }, "HEART", std::vector<uint8_t>{}, 0);
+        auto response = std::make_unique<Message>(
+            message->id(), 
+            "RSP", 
+            "server", 
+            std::vector<std::string>{ message->from() }, 
+            "HEART", 
+            std::vector<uint8_t>{}, 
+            0
+        );
         append(response, Send);
         return;
     }
