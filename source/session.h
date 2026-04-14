@@ -6,7 +6,7 @@
 #include <mutex>
 #include "processor.h"
 
-class client : public std::enable_shared_from_this<client> {
+class Session : public std::enable_shared_from_this<Session> {
 public:
     enum Reason {
         Clean,
@@ -16,8 +16,8 @@ public:
         Manual
     };
 
-    explicit client(asio::ip::tcp::socket socket, asio::io_context& context);
-    ~client();
+    explicit Session(asio::ip::tcp::socket socket, asio::io_context& context);
+    ~Session();
 
     void start();
     void close(Reason reason);
@@ -32,7 +32,7 @@ private:
 private:
     asio::steady_timer m_timer;
     asio::ip::tcp::socket m_socket;
-    std::array<uint8_t, 1024> m_buffer{};
+    Message::RawData m_buffer{};
     uint16_t m_port{};
     std::string m_address{};
     std::string m_number{};

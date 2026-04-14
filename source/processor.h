@@ -8,7 +8,8 @@
 
 class Message {
 public:
-    Message(const std::array<uint8_t, 1024>& data);
+    using RawData = std::array<uint8_t, 1024>;
+    Message(const RawData& data);
     Message(int id, std::string type,
             std::string from,
             std::vector<std::string> to,
@@ -16,7 +17,7 @@ public:
             std::vector<uint8_t> content, int result);
     ~Message();
 
-    std::array<uint8_t, 1024> data() const { return m_data; }
+    RawData raw() const { return m_data; }
     bool valid() const { return m_valid; };
     std::string version() const { return m_version; };
     int id() const { return m_id; }
@@ -40,7 +41,7 @@ private:
     std::string m_func{};
     std::vector<uint8_t> m_content{};
     int m_result{};
-    std::array<uint8_t, 1024> m_data{};
+    RawData m_data{};
 };
 
 class MessageProcessor {

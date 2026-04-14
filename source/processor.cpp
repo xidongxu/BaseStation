@@ -7,7 +7,7 @@
 
 using namespace std;
 
-Message::Message(const std::array<uint8_t, 1024>& data) : m_valid(false), m_data(data) {
+Message::Message(const RawData& data) : m_valid(false), m_data(data) {
     char* start = (char*)m_data.data() + 2;
     if (m_data[0] != 0x55 || m_data[1] != 0x55 || start[0] == '\0') {
         LogWarn() << "Invalid message sync word";
@@ -160,7 +160,7 @@ void MessageProcessor::process() {
         }
         message = fetch(Send);
         if (message && message->valid()) {
-            server::instance().send(message);
+            Server::instance().send(message);
         }
     }
     cleanup(Recv);

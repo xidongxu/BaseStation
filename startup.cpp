@@ -39,8 +39,8 @@ int main(int argc, char* argv[]) {
         LogInfo() << arg;
         return 0;
     }
-    auto &server = server::instance();
-    server.start(port);
+    auto &Server = Server::instance();
+    Server.start(port);
 
     MainScheduler scheduler;
     Cli cli(std::move(menu()));
@@ -50,6 +50,6 @@ int main(int argc, char* argv[]) {
     session.ExitAction([&scheduler](auto& out) { scheduler.Stop(); });
     scheduler.Run();
 
-    server.close();
+    Server.close();
     return 0;
 }

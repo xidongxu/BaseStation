@@ -8,7 +8,7 @@
 using namespace std;
 using asio::ip::tcp;
 
-void server::start(uint16_t port) {
+void Server::start(uint16_t port) {
     m_acceptor = std::make_unique<tcp::acceptor>(m_context, tcp::endpoint(tcp::v4(), port));
     accept();
     m_thread = std::thread([this, port]() {
@@ -17,7 +17,7 @@ void server::start(uint16_t port) {
     });
 }
 
-void server::close() {
+void Server::close() {
     asio::error_code error{};
     m_context.stop();
     if (m_thread.joinable()) {
@@ -30,11 +30,11 @@ void server::close() {
     m_acceptor.reset();
 }
 
-void server::accept() {
+void Server::accept() {
     m_acceptor->async_accept(
         [this](asio::error_code error, tcp::socket socket) {
             if (!error) {
-                auto session = std::make_shared<client>(std::move(socket), m_context);
+                auto session = std::make_shared<Session>(std::move(socket), m_context);
                 session->start();
             } else {
                 LogError() << "Accept error: " << error.message();
@@ -43,7 +43,7 @@ void server::accept() {
         });
 }
 
-void server::send(const std::unique_ptr<Message>& message) {
+void Server::send(const std::unique_ptr<Message>& message) {
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto& number : message->to()) {
         if (m_sessions.contains(number)) {
@@ -53,7 +53,7 @@ void server::send(const std::unique_ptr<Message>& message) {
     }
 }
 
-void server::append(std::string number, std::shared_ptr<client> session) {
+void Server::append(std::string number, std::shared_ptr<Session> session) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_sessions.contains(number))
         return;
@@ -61,7 +61,7 @@ void server::append(std::string number, std::shared_ptr<client> session) {
     LogInfo() << "client:" << number << "login";
 }
 
-void server::remove(std::string number) {
+void Server::remove(std::string number) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_sessions.contains(number))
         return;

@@ -2,7 +2,7 @@
 #include <thread>
 #include "asio.hpp"
 #include "cJSON.h"
-#include "client.h"
+#include "session.h"
 #include "processor.h"
 #include "server.h"
 #include "logger.h"
@@ -10,24 +10,24 @@
 using namespace std;
 using asio::ip::tcp;
 
-client::client(tcp::socket socket, asio::io_context& context) : m_socket(std::move(socket)), m_timer(context) {
+Session::Session(tcp::socket socket, asio::io_context& context) : m_socket(std::move(socket)), m_timer(context) {
     m_address = m_socket.remote_endpoint().address().to_string();
     m_port = m_socket.remote_endpoint().port();
     m_connected = true;
     LogInfo() << "client:" << this << "create";
 }
 
-client::~client() {
+Session::~Session() {
     close(Reason::Manual);
     LogInfo() << "client:" << this << "destory";
 }
 
-void client::start() {
+void Session::start() {
     do_timeout();
     do_receive();
 }
 
-void client::close(Reason reason) {
+void Session::close(Reason reason) {
     if (m_connected == false) {
         return;
     }
@@ -38,15 +38,15 @@ void client::close(Reason reason) {
     m_connected = false;
 }
 
-void client::send(const std::unique_ptr<Message>& message) {
+void Session::send(const std::unique_ptr<Message>& message) {
     do_write(message);
 }
 
-void client::do_write(const std::unique_ptr<Message>& message) {
+void Session::do_write(const std::unique_ptr<Message>& message) {
     auto self(shared_from_this());
     asio::async_write(
         m_socket,
-        asio::buffer(message->data()),
+        asio::buffer(message->raw()),
         [this, self](const asio::error_code& error, std::size_t bytes) {
             if (error) {
                 LogInfo() << "Message send error:" << error.message();
@@ -56,7 +56,7 @@ void client::do_write(const std::unique_ptr<Message>& message) {
     );
 }
 
-void client::do_timeout() {
+void Session::do_timeout() {
     m_timer.expires_after(9s);
     m_timer.async_wait(
         [this](const asio::error_code& error) {
@@ -68,7 +68,7 @@ void client::do_timeout() {
     );
 }
 
-void client::do_receive() {
+void Session::do_receive() {
     auto self(shared_from_this());
     asio::async_read(
         m_socket,
@@ -79,7 +79,7 @@ void client::do_receive() {
                 auto message = std::make_unique<Message>(m_buffer);
                 if (message->is_heart()) {
                     m_number = message->from();
-                    server::instance().append(message->from(), self);
+                    Server::instance().append(message->from(), self);
                     do_timeout();
                 }
                 MessageProcessor::instance().append(message, MessageProcessor::Recv);
@@ -91,7 +91,7 @@ void client::do_receive() {
     );
 }
 
-void client::do_disconnect(const asio::error_code& error) {
+void Session::do_disconnect(const asio::error_code& error) {
     Reason reason = Reason::Clean;
     switch (error.value()) {
     case asio::error::eof:
