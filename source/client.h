@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <mutex>
+#include "processor.h"
 
 class client : public std::enable_shared_from_this<client> {
 public:
@@ -15,16 +16,17 @@ public:
         Manual
     };
 
-    explicit client(asio::ip::tcp::socket socket);
+    explicit client(asio::ip::tcp::socket socket, asio::io_context& context);
     ~client();
 
     void start();
     void close(Reason reason);
-    void write(const std::string& message);
+    void send(const std::unique_ptr<Message>& message);
 
 private:
     void do_timeout();
     void do_receive();
+    void do_write(const std::unique_ptr<Message>& message);
     void do_disconnect(const asio::error_code& error);
 
 private:

@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include "processor.h"
 
 class server {
 public:
@@ -15,6 +16,7 @@ public:
     void start(uint16_t port);
     void close();
     void accept();
+    void send(const std::unique_ptr<Message> &message);
     void append(std::string number, std::shared_ptr<client> session);
     void remove(std::string number);
 

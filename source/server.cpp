@@ -34,13 +34,23 @@ void server::accept() {
     m_acceptor->async_accept(
         [this](asio::error_code error, tcp::socket socket) {
             if (!error) {
-                auto session = std::make_shared<client>(std::move(socket));
+                auto session = std::make_shared<client>(std::move(socket), m_context);
                 session->start();
             } else {
                 LogError() << "Accept error: " << error.message();
             }
             accept();
         });
+}
+
+void server::send(const std::unique_ptr<Message>& message) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (const auto& number : message->to()) {
+        if (m_sessions.contains(number)) {
+            m_sessions[number]->send(message);
+            return;
+        }
+    }
 }
 
 void server::append(std::string number, std::shared_ptr<client> session) {

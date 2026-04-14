@@ -16,6 +16,7 @@ public:
             std::vector<uint8_t> content, int result);
     ~Message();
 
+    std::array<uint8_t, 1024> data() const { return m_data; }
     bool valid() const { return m_valid; };
     std::string version() const { return m_version; };
     int id() const { return m_id; }
@@ -44,16 +45,18 @@ private:
 
 class MessageProcessor {
 public:
+    enum Type { recv, send };
     static MessageProcessor& instance() {
         static MessageProcessor instance;
         return instance;
     }
     void process();
-    void append(std::unique_ptr<Message> &message);
-    std::unique_ptr<Message> fetch();
-    void cleanup();
+    void resolve(std::unique_ptr<Message>& message);
+    void append(std::unique_ptr<Message> &message, Type type);
+    std::unique_ptr<Message> fetch(Type type);
+    void cleanup(Type type);
+    std::size_t size(Type type);
     void quit() { m_quit = true; }
-    std::size_t size();
 
 private:
     MessageProcessor();
@@ -68,5 +71,6 @@ private:
     std::thread m_thread{};
     std::atomic<bool> m_quit{};
     std::condition_variable m_condition{};
-    std::deque<std::unique_ptr<Message>> m_queue{};
+    std::deque<std::unique_ptr<Message>> m_recv{};
+    std::deque<std::unique_ptr<Message>> m_send{};
 };

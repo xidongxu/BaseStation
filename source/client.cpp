@@ -10,7 +10,7 @@
 using namespace std;
 using asio::ip::tcp;
 
-client::client(tcp::socket socket) : m_socket(std::move(socket)), m_timer(asio::system_executor()) {
+client::client(tcp::socket socket, asio::io_context& context) : m_socket(std::move(socket)), m_timer(context) {
     m_address = m_socket.remote_endpoint().address().to_string();
     m_port = m_socket.remote_endpoint().port();
     m_connected = true;
@@ -38,8 +38,22 @@ void client::close(Reason reason) {
     m_connected = false;
 }
 
-void client::write(const std::string& message) {
+void client::send(const std::unique_ptr<Message>& message) {
+    do_write(message);
+}
 
+void client::do_write(const std::unique_ptr<Message>& message) {
+    auto self(shared_from_this());
+    asio::async_write(
+        m_socket,
+        asio::buffer(message->data()),
+        [this, self](const asio::error_code& error, std::size_t bytes) {
+            if (error) {
+                LogInfo() << "Message send error:" << error.message();
+                do_disconnect(error);
+            }
+        }
+    );
 }
 
 void client::do_timeout() {
@@ -66,9 +80,9 @@ void client::do_receive() {
                 if (message->is_heart()) {
                     m_number = message->from();
                     server::instance().append(message->from(), self);
+                    do_timeout();
                 }
-                MessageProcessor::instance().append(message);
-                do_timeout();
+                MessageProcessor::instance().append(message, MessageProcessor::recv);
                 do_receive();
             } else {
                 do_disconnect(error);

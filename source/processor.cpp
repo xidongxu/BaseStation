@@ -152,38 +152,88 @@ MessageProcessor::~MessageProcessor() {
 
 void MessageProcessor::process() {
     LogInfo() << "Processor start";
+    std::unique_ptr<Message> message{};
     while (!m_quit) {
-        auto message = fetch();
+        message = fetch(recv);
         if (message && message->valid()) {
-            LogInfo() << "Message from:" << message->from();
+            resolve(message);
+        }
+        message = fetch(send);
+        if (message && message->valid()) {
+            server::instance().send(message);
         }
     }
-    cleanup();
+    cleanup(recv);
+    cleanup(send);
 }
 
-void MessageProcessor::append(std::unique_ptr<Message> &message) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_queue.push_back(std::move(message));
-}
-
-std::unique_ptr<Message> MessageProcessor::fetch() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_queue.empty()) {
-        return nullptr;
+void MessageProcessor::resolve(std::unique_ptr<Message>& message) {
+    if (message->is_heart()) {
+        LogInfo() << "Message Recv:" << message->from();
+        auto response = std::make_unique<Message>(message->id(), "RESP", "0", std::vector<std::string>{ message->from() }, "HEART", std::vector<uint8_t>{}, 0);
+        append(response, send);
+        return;
     }
-    auto message = std::move(m_queue.front());
-    m_queue.pop_front();
+}
+
+void MessageProcessor::append(std::unique_ptr<Message> &message, Type type) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    switch (type) {
+    case recv:
+        m_recv.push_back(std::move(message));
+        break;
+    case send:
+        m_send.push_back(std::move(message));
+        break;
+    }
+}
+
+std::unique_ptr<Message> MessageProcessor::fetch(Type type) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::unique_ptr<Message> message = nullptr;
+    switch (type) {
+    case recv:
+        if (!m_recv.empty()) {
+            message = std::move(m_recv.front());
+            m_recv.pop_front();
+        }
+        break;
+    case send:
+        if (!m_send.empty()) {
+            message = std::move(m_send.front());
+            m_send.pop_front();
+        }
+        break;
+    }
     return message;
 }
 
-void MessageProcessor::cleanup() {
+void MessageProcessor::cleanup(Type type) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    while (!m_queue.empty()) {
-        m_queue.pop_front();
+    switch (type) {
+    case recv:
+        while (!m_recv.empty()) {
+            m_recv.pop_front();
+        }
+        break;
+    case send:
+        while (!m_send.empty()) {
+            m_send.pop_front();
+        }
+        break;
     }
 }
 
-size_t MessageProcessor::size() {
+size_t MessageProcessor::size(Type type) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_queue.size();
+    size_t size = 0;
+    switch (type) {
+    case recv:
+        size = m_recv.size();
+        break;
+    case send:
+        size = m_send.size();
+        break;
+    }
+    return size;
 }
