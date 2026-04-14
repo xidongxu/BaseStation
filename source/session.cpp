@@ -62,11 +62,17 @@ void Session::do_receive() {
         asio::transfer_exactly(1024),
         [this, self](const asio::error_code& error, std::size_t bytes) {
             if (!error) {
+                bool result = true;
                 auto message = std::make_unique<Message>(m_buffer);
                 if (message->is_heart()) {
-                    m_number = message->from();
-                    Server::instance().append(message->from(), self);
+                    result = Server::instance().append(message->from(), self);
+                    m_number = (result == true) ? message->from() : "";
                     do_timeout();
+                }
+                if (!result) {
+                    LogWarn() << "client:" << this << "duplicate, close by server";
+                    close(Reason::Manual);
+                    return;
                 }
                 MessageProcessor::instance().append(message, MessageProcessor::Recv);
                 do_receive();

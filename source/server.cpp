@@ -55,20 +55,27 @@ void Server::send(const std::unique_ptr<Message>& message) {
     }
 }
 
-void Server::append(std::string number, std::shared_ptr<Session> session) {
+bool Server::append(std::string number, std::shared_ptr<Session> session) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_sessions.contains(number))
-        return;
+    auto it = m_sessions.find(number);
+    if (it != m_sessions.end()) {
+        if (it->second != session) {
+            return false;
+        }
+        return true;
+    }
     m_sessions.insert({ number, session });
     LogInfo() << "client:" << number << "login";
+    return true;
 }
 
-void Server::remove(std::string number) {
+bool Server::remove(std::string number) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_sessions.contains(number))
-        return;
+        return false;
     if (auto it = m_sessions.find(number); it != m_sessions.end()) {
         m_sessions.erase(it);
     }
     LogInfo() << "client:" << number << "logout";
+    return true;
 }

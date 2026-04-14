@@ -17,8 +17,8 @@ public:
     void close();
     void accept();
     void send(const std::unique_ptr<Message> &message);
-    void append(std::string number, std::shared_ptr<Session> session);
-    void remove(std::string number);
+    bool append(std::string number, std::shared_ptr<Session> session);
+    bool remove(std::string number);
 
 private:
     Server() = default;
