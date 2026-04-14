@@ -29,6 +29,7 @@ void Session::start() {
 }
 
 void Session::close(Reason reason) {
+    // server destory crash
     if (m_number.empty() == false) {
         Server::instance().remove(m_number);
     }
