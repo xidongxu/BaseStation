@@ -154,24 +154,24 @@ void MessageProcessor::process() {
     LogInfo() << "Processor start";
     std::unique_ptr<Message> message{};
     while (!m_quit) {
-        message = fetch(recv);
+        message = fetch(Recv);
         if (message && message->valid()) {
             resolve(message);
         }
-        message = fetch(send);
+        message = fetch(Send);
         if (message && message->valid()) {
             server::instance().send(message);
         }
     }
-    cleanup(recv);
-    cleanup(send);
+    cleanup(Recv);
+    cleanup(Send);
 }
 
 void MessageProcessor::resolve(std::unique_ptr<Message>& message) {
     if (message->is_heart()) {
         LogInfo() << "Message Recv:" << message->from();
         auto response = std::make_unique<Message>(message->id(), "RESP", "0", std::vector<std::string>{ message->from() }, "HEART", std::vector<uint8_t>{}, 0);
-        append(response, send);
+        append(response, Send);
         return;
     }
 }
@@ -179,10 +179,10 @@ void MessageProcessor::resolve(std::unique_ptr<Message>& message) {
 void MessageProcessor::append(std::unique_ptr<Message> &message, Type type) {
     std::lock_guard<std::mutex> lock(m_mutex);
     switch (type) {
-    case recv:
+    case Recv:
         m_recv.push_back(std::move(message));
         break;
-    case send:
+    case Send:
         m_send.push_back(std::move(message));
         break;
     }
@@ -192,13 +192,13 @@ std::unique_ptr<Message> MessageProcessor::fetch(Type type) {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::unique_ptr<Message> message = nullptr;
     switch (type) {
-    case recv:
+    case Recv:
         if (!m_recv.empty()) {
             message = std::move(m_recv.front());
             m_recv.pop_front();
         }
         break;
-    case send:
+    case Send:
         if (!m_send.empty()) {
             message = std::move(m_send.front());
             m_send.pop_front();
@@ -211,12 +211,12 @@ std::unique_ptr<Message> MessageProcessor::fetch(Type type) {
 void MessageProcessor::cleanup(Type type) {
     std::lock_guard<std::mutex> lock(m_mutex);
     switch (type) {
-    case recv:
+    case Recv:
         while (!m_recv.empty()) {
             m_recv.pop_front();
         }
         break;
-    case send:
+    case Send:
         while (!m_send.empty()) {
             m_send.pop_front();
         }
@@ -228,10 +228,10 @@ size_t MessageProcessor::size(Type type) {
     std::lock_guard<std::mutex> lock(m_mutex);
     size_t size = 0;
     switch (type) {
-    case recv:
+    case Recv:
         size = m_recv.size();
         break;
-    case send:
+    case Send:
         size = m_send.size();
         break;
     }

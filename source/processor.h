@@ -45,7 +45,7 @@ private:
 
 class MessageProcessor {
 public:
-    enum Type { recv, send };
+    enum Type { Recv, Send };
     static MessageProcessor& instance() {
         static MessageProcessor instance;
         return instance;

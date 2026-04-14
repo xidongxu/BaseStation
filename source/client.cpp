@@ -82,7 +82,7 @@ void client::do_receive() {
                     server::instance().append(message->from(), self);
                     do_timeout();
                 }
-                MessageProcessor::instance().append(message, MessageProcessor::recv);
+                MessageProcessor::instance().append(message, MessageProcessor::Recv);
                 do_receive();
             } else {
                 do_disconnect(error);
