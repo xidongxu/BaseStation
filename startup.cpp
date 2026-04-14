@@ -1,4 +1,5 @@
 ﻿#include "startup.h"
+#include "server.h"
 #include <lyra/lyra.hpp>
 #include <cli/cli.h>
 #include <cli/clilocalsession.h>
@@ -9,27 +10,32 @@ using MainScheduler = StandaloneAsioScheduler;
 using namespace std;
 using namespace cli;
 
+#define LOG_TAG "startup"
+#include "logger.h"
+
 std::unique_ptr<cli::Menu> menu() {
     auto rootMenu = make_unique< Menu >("cli");
     rootMenu->Insert(
-        "hello",
-        [](std::ostream& out) { out << "Hello, world\n"; },
-        "Print hello world");
+        "version",
+        [](std::ostream& out) { out << BASE_STATION_VERSION << "\n"; },
+        "Print Version");
     rootMenu->Insert(
         "answer",
         [](std::ostream& out, int x) { out << "The answer is: " << x << "\n"; },
-        "Print the answer to Life, the Universe and Everything ");
+        "Print the answer to Life, the Universe and Everything");
 
     return rootMenu;
 }
 
 int main(int argc, char* argv[]) {
     bool help = false;
+    bool version = false;
     uint16_t port = 5566;
 
     auto arg = lyra::cli()
         | lyra::help(help)["-h"]["--help"]("Show help information")
-        | lyra::opt(port, "port")["-p"]["--port"]("Set server port number");
+        | lyra::opt(port, "port")["-p"]["--port"]("Set server port number")
+        | lyra::opt(version)["-v"]["--version"]("Show version.");
     auto res = arg.parse({ argc, argv });
     if (!res) {
         LogInfo() << "Arg parse failed: " << res.message();
@@ -37,6 +43,10 @@ int main(int argc, char* argv[]) {
     }
     if (help) {
         LogInfo() << arg;
+        return 0;
+    }
+    if (version) {
+        LogInfo() << BASE_STATION_VERSION;
         return 0;
     }
     auto &Server = Server::instance();

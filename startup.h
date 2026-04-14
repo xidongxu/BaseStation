@@ -2,5 +2,5 @@
 
 #include <thread>
 #include <memory>
-#include "logger.h"
-#include "server.h"
+
+#define BASE_STATION_VERSION    "0.0.1"
