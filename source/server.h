@@ -19,6 +19,7 @@ public:
     void send(const std::unique_ptr<Message> &message);
     bool append(std::string number, std::shared_ptr<Session> session);
     bool remove(std::string number);
+    void clear();
 
 private:
     Server() = default;
@@ -32,6 +33,7 @@ private:
 private:
     std::mutex m_mutex{};
     std::thread m_thread{};
+    std::atomic<bool> m_closed{};
     asio::io_context m_context{};
     std::unique_ptr<asio::ip::tcp::acceptor> m_acceptor{};
     std::unordered_map<std::string, std::shared_ptr<Session>> m_sessions;

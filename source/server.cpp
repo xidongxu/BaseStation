@@ -11,6 +11,7 @@ using namespace std;
 using asio::ip::tcp;
 
 void Server::start(uint16_t port) {
+    m_closed = false;
     localhosts(port);
     m_acceptor = std::make_unique<tcp::acceptor>(m_context, tcp::endpoint(tcp::v4(), port));
     accept();
@@ -21,6 +22,9 @@ void Server::start(uint16_t port) {
 
 void Server::close() {
     asio::error_code error{};
+    if (m_closed) {
+        return;
+    }
     m_context.stop();
     if (m_thread.joinable()) {
         m_thread.join();
@@ -30,6 +34,8 @@ void Server::close() {
         m_acceptor->close(error);
     }
     m_acceptor.reset();
+    clear();
+    m_closed = true;
 }
 
 void Server::accept() {
@@ -78,6 +84,14 @@ bool Server::remove(std::string number) {
     }
     LogInfo() << "client:" << number << "logout";
     return true;
+}
+
+void Server::clear() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (auto it = m_sessions.begin(); it != m_sessions.end()) {
+        it->second->close();
+        it = m_sessions.erase(it);
+    }
 }
 
 void Server::localhosts(uint16_t port) {

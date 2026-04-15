@@ -19,24 +19,25 @@ Session::Session(tcp::socket socket, asio::io_context& context) : m_socket(std::
 }
 
 Session::~Session() {
-    close(Reason::Manual);
+    do_close(Reason::Manual);
     LogInfo() << "client:" << this << "destory";
 }
 
 void Session::start() {
+    m_closed = false;
     do_timeout();
     do_receive();
 }
 
-void Session::close(Reason reason) {
-    // server destory crash
-    if (m_number.empty() == false) {
-        Server::instance().remove(m_number);
+void Session::close() {
+    if (m_closed) {
+        return;
     }
     asio::error_code error;
     m_timer.cancel();
     m_socket.shutdown(tcp::socket::shutdown_both, error);
     m_socket.close(error);
+    m_closed = true;
 }
 
 void Session::send(const std::unique_ptr<Message>& message) {
@@ -49,7 +50,7 @@ void Session::do_timeout() {
         [this](const asio::error_code& error) {
             if (!error) {
                 LogInfo() << "client:" << this << "timeout";
-                close(Reason::Manual);
+                do_close(Reason::Manual);
             }
         }
     );
@@ -72,7 +73,7 @@ void Session::do_receive() {
                 }
                 if (!result) {
                     LogWarn() << "client:" << this << "duplicate, close by server";
-                    close(Reason::Manual);
+                    do_close(Reason::Manual);
                     return;
                 }
                 MessageProcessor::instance().append(MessageProcessor::Recv, message);
@@ -98,12 +99,22 @@ void Session::do_write(const std::unique_ptr<Message>& message) {
     );
 }
 
+void Session::do_close(Reason reason) {
+    if (m_closed) {
+        return;
+    }
+    if (m_number.empty() == false) {
+        Server::instance().remove(m_number);
+    }
+    close();
+}
+
 void Session::do_disconnect(const asio::error_code& error) {
     Reason reason = Reason::Clean;
     switch (error.value()) {
     case asio::error::eof:
-        reason = Reason::Clean;
         LogInfo() << "client:" << this << "closed by client";
+        reason = Reason::Clean;
         break;
     case asio::error::connection_reset:
     case asio::error::connection_aborted:
@@ -115,9 +126,9 @@ void Session::do_disconnect(const asio::error_code& error) {
         reason = Reason::Manual;
         break;
     default:
-        reason = Reason::Error;
         LogInfo() << "client:" << this << "has error:" << error.message();
+        reason = Reason::Error;
         break;
     }
-    close(reason);
+    do_close(reason);
 }
