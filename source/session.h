@@ -10,7 +10,7 @@ class Session : public std::enable_shared_from_this<Session> {
 public:
     enum Reason { Clean, Timeout, Reset, Manual, Error };
 
-    explicit Session(asio::ip::tcp::socket socket, asio::io_context& context);
+    explicit Session(asio::ip::tcp::socket socket, asio::io_context& context, int m_key);
     ~Session();
 
     void start();
@@ -25,6 +25,7 @@ private:
     void do_disconnect(const asio::error_code& error);
 
 private:
+    int m_key{};
     asio::steady_timer m_timer;
     asio::ip::tcp::socket m_socket;
     Message::RawData m_buffer{};

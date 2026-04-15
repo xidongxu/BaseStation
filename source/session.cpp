@@ -12,7 +12,7 @@
 using namespace std;
 using asio::ip::tcp;
 
-Session::Session(tcp::socket socket, asio::io_context& context) : m_socket(std::move(socket)), m_timer(context) {
+Session::Session(tcp::socket socket, asio::io_context& context, int key) : m_socket(std::move(socket)), m_timer(context), m_key(key) {
     m_address = m_socket.remote_endpoint().address().to_string();
     m_port = m_socket.remote_endpoint().port();
     LogInfo() << "client:" << this << "create";
@@ -46,54 +46,67 @@ void Session::send(const std::unique_ptr<Message>& message) {
 
 void Session::do_timeout() {
     m_timer.expires_after(9s);
+    auto self = weak_from_this();
     m_timer.async_wait(
-        [this](const asio::error_code& error) {
+        [self](const asio::error_code& error) {
+            auto session = self.lock();
+            if (!session) {
+                return;
+            }
             if (!error) {
-                LogInfo() << "client:" << this << "timeout";
-                do_close(Reason::Manual);
+                LogInfo() << "client:" << session.get() << "timeout";
+                session->do_close(Reason::Manual);
             }
         }
     );
 }
 
 void Session::do_receive() {
-    auto self(shared_from_this());
+    auto self = weak_from_this();
     asio::async_read(
         m_socket,
         asio::buffer(m_buffer, m_buffer.size()),
         asio::transfer_exactly(m_buffer.size()),
-        [this, self](const asio::error_code& error, std::size_t bytes) {
+        [self](const asio::error_code& error, std::size_t bytes) {
+            auto session = self.lock();
+            if (!session) {
+                return;
+            }
             if (!error) {
                 bool result = true;
-                auto message = std::make_unique<Message>(m_buffer);
+                auto message = std::make_unique<Message>(session->m_buffer);
                 if (message->is_heart()) {
-                    result = Server::instance().append(message->from(), self);
-                    m_number = (result == true) ? message->from() : "";
-                    do_timeout();
+                    result = Server::instance().append(session->m_key, message->from());
+                    session->m_number = (result == true) ? message->from() : "";
+                    session->do_timeout();
                 }
                 if (!result) {
-                    LogWarn() << "client:" << this << "duplicate, close by server";
-                    do_close(Reason::Manual);
+                    LogWarn() << "client:" << session.get() << "duplicate, close by server";
+                    session->do_close(Reason::Manual);
                     return;
                 }
                 MessageProcessor::instance().append(MessageProcessor::Recv, message);
-                do_receive();
+                session->do_receive();
             } else {
-                do_disconnect(error);
+                session->do_disconnect(error);
             }
         }
     );
 }
 
 void Session::do_write(const std::unique_ptr<Message>& message) {
-    auto self(shared_from_this());
+    auto self = weak_from_this();
     asio::async_write(
         m_socket,
         asio::buffer(message->raw()),
-        [this, self](const asio::error_code& error, std::size_t bytes) {
+        [self](const asio::error_code& error, std::size_t bytes) {
+            auto session = self.lock();
+            if (!session) {
+                return;
+            }
             if (error) {
                 LogInfo() << "Message send error:" << error.message();
-                do_disconnect(error);
+                session->do_disconnect(error);
             }
         }
     );
@@ -103,6 +116,7 @@ void Session::do_close(Reason reason) {
     if (m_closed) {
         return;
     }
+    Server::instance().remove(m_key);
     if (m_number.empty() == false) {
         Server::instance().remove(m_number);
     }

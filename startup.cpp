@@ -33,7 +33,10 @@ static std::unique_ptr<cli::Menu> menu() {
         "answer",
         [](std::ostream& out, int x) { out << "The answer is: " << x << "\n"; },
         "Print the answer to Life, the Universe and Everything");
-
+    rootMenu->Insert(
+        "stop",
+        [](std::ostream& out) { Server::instance().close(); },
+        "Server stop");
     return rootMenu;
 }
 

@@ -17,8 +17,9 @@ public:
     void close();
     void accept();
     void send(const std::unique_ptr<Message> &message);
-    bool append(std::string number, std::shared_ptr<Session> session);
+    bool append(int key, std::string number);
     bool remove(std::string number);
+    bool remove(int key);
 
 private:
     Server() = default;
@@ -27,14 +28,17 @@ private:
     Server& operator=(const Server&) = delete;
     Server(Server&&) = delete;
     Server& operator=(Server&&) = delete;
-    void clearup();
+    void storage(int key, std::shared_ptr<Session>& session);
+    void cleanup();
     void localhosts(uint16_t port);
 
 private:
+    int m_counter{};
     std::mutex m_mutex{};
     std::thread m_thread{};
     std::atomic<bool> m_closed{};
     asio::io_context m_context{};
     std::unique_ptr<asio::ip::tcp::acceptor> m_acceptor{};
-    std::unordered_map<std::string, std::shared_ptr<Session>> m_sessions;
+    std::unordered_map<int, std::shared_ptr<Session>> m_makeshifts{};
+    std::unordered_map<std::string, std::shared_ptr<Session>> m_sessions{};
 };
