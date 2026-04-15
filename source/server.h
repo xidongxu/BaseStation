@@ -19,7 +19,6 @@ public:
     void send(const std::unique_ptr<Message> &message);
     bool append(std::string number, std::shared_ptr<Session> session);
     bool remove(std::string number);
-    void clear();
 
 private:
     Server() = default;
@@ -28,6 +27,7 @@ private:
     Server& operator=(const Server&) = delete;
     Server(Server&&) = delete;
     Server& operator=(Server&&) = delete;
+    void clearup();
     void localhosts(uint16_t port);
 
 private:

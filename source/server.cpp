@@ -34,7 +34,7 @@ void Server::close() {
         m_acceptor->close(error);
     }
     m_acceptor.reset();
-    clear();
+    clearup();
     m_closed = true;
 }
 
@@ -86,7 +86,7 @@ bool Server::remove(std::string number) {
     return true;
 }
 
-void Server::clear() {
+void Server::clearup() {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (auto it = m_sessions.begin(); it != m_sessions.end()) {
         it->second->close();
