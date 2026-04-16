@@ -36,14 +36,51 @@ public:
     }
 };
 
-class Send_Message : public Command {
+class Offline : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override {
+        auto response = std::make_unique<Message>(
+            message->id(),
+            "RSP",
+            "server",
+            std::vector<std::string>{ message->from() },
+            "OFFLINE",
+            std::vector<uint8_t>{},
+            0
+        );
+        MessageProcessor::instance().append(MessageProcessor::Send, response);
+    }
+};
+
+class Make_Call : public Command {
 public:
     void execute(std::unique_ptr<Message>& message) override {
         std::cout << "message:" << message->func() << std::endl;
     }
 };
 
-class Make_Call : public Command {
+class Answer_Call : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override {
+        std::cout << "message:" << message->func() << std::endl;
+    }
+};
+
+class End_Call : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override {
+        std::cout << "message:" << message->func() << std::endl;
+    }
+};
+
+class Reject_Call : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override {
+        std::cout << "message:" << message->func() << std::endl;
+    }
+};
+
+class Send_Message : public Command {
 public:
     void execute(std::unique_ptr<Message>& message) override {
         std::cout << "message:" << message->func() << std::endl;
@@ -55,9 +92,21 @@ void registerCommands() {
         "HEART", 
         []() { return std::make_unique<Heart>(); });
     CommandBuilder::instance().registerCommand(
-        "SEND_MESSAGE", 
-        []() { return std::make_unique<Send_Message>(); });
+        "OFFLINE",
+        []() { return std::make_unique<Offline>(); });
     CommandBuilder::instance().registerCommand(
         "MAKE_CALL", 
         []() { return std::make_unique<Make_Call>(); });
+    CommandBuilder::instance().registerCommand(
+        "ANSWER_CALL",
+        []() { return std::make_unique<Answer_Call>(); });
+    CommandBuilder::instance().registerCommand(
+        "END_CALL",
+        []() { return std::make_unique<End_Call>(); });
+    CommandBuilder::instance().registerCommand(
+        "REJECT_CALL",
+        []() { return std::make_unique<Reject_Call>(); });
+    CommandBuilder::instance().registerCommand(
+        "SEND_MESSAGE", 
+        []() { return std::make_unique<Send_Message>(); });
 }
