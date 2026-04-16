@@ -1,6 +1,7 @@
 ﻿#include <chrono>
 #include <thread>
 #include "cJSON.h"
+#include "command.h"
 #include "processor.h"
 #include "server.h"
 
@@ -142,6 +143,7 @@ bool Message::is_heart() const {
 }
 
 MessageProcessor::MessageProcessor() {
+    registerCommands();
     m_thread = std::thread(&MessageProcessor::process, this);
 }
 
@@ -170,18 +172,13 @@ void MessageProcessor::process() {
 }
 
 void MessageProcessor::resolve(std::unique_ptr<Message>& message) {
-    if (message->is_heart()) {
-        auto response = std::make_unique<Message>(
-            message->id(), 
-            "RSP", 
-            "server", 
-            std::vector<std::string>{ message->from() }, 
-            "HEART", 
-            std::vector<uint8_t>{}, 
-            0
-        );
-        append(Send, response);
-        return;
+    if (message->valid()) {
+        auto cmd = CommandBuilder::instance().build(message->func());
+        if (cmd) {
+            cmd->execute(message);
+            return;
+        }
+        LogWarn() << "Unknown command: " << message->func();
     }
 }
 
