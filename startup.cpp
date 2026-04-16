@@ -63,6 +63,9 @@ int main(int argc, char* argv[]) {
         LogInfo() << BASE_STATION_VERSION;
         return 0;
     }
+    
+    // read configure for sim cards
+
     auto &Server = Server::instance();
     Server.start(port);
 
