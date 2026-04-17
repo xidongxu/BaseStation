@@ -9,7 +9,7 @@ public:
         static Configure instance;
         return instance;
     }
-    bool load(const std::string& path);
+    void load(const std::string& path);
     void save(const std::string& path) const;
     std::string version() const { return m_version; }
     uint16_t port() const { return m_port; }
@@ -23,6 +23,7 @@ private:
     Configure& operator=(const Configure&) = delete;
     Configure(Configure&&) = delete;
     Configure& operator=(Configure&&) = delete;
+    bool parse(const std::string& content);
 
 private:
     std::string m_path{};

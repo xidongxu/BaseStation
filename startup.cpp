@@ -45,13 +45,13 @@ int main(int argc, char* argv[]) {
     bool help = false;
     bool version = false;
     uint16_t port = 5566;
-    bool specified_port = false;
+    bool specified = false;
     std::string configure = "configure.json";
 
     prepare();
     auto arg = lyra::cli()
         | lyra::help(help)["-h"]["--help"]("Show help information")
-        | lyra::opt([&](uint16_t p) { port = p, specified_port = true; }, "port")["-p"]["--port"]("Set server port number")
+        | lyra::opt([&](uint16_t p) { port = p, specified = true; }, "port")["-p"]["--port"]("Set server port number")
         | lyra::opt(configure, "path")["-c"]["--config"]("The path to the configure.json")
         | lyra::opt(version)["-v"]["--version"]("Show version.");
     auto res = arg.parse({ argc, argv });
@@ -74,13 +74,8 @@ int main(int argc, char* argv[]) {
     }
     
     auto& Config = Configure::instance();
-    if (!Config.load(configure)) {
-        LogError() << "configure.json parse failed";
-        return -2;
-    }
-    if (!specified_port) {
-        port = Config.port();
-    }
+    Config.load(configure);
+    port = specified ? Config.port() : port;
 
     auto &Server = Server::instance();
     Server.start(port);
