@@ -13,12 +13,15 @@ using asio::ip::tcp;
 void Server::start(uint16_t port) {
     m_closed = false;
     m_counter = 0;
-    localhosts(port);
-    m_acceptor = std::make_unique<tcp::acceptor>(m_context, tcp::endpoint(tcp::v4(), port));
+    port = listen(port, port + 10);
+    if (port == 0) {
+        return;
+    }
     accept();
     m_thread = std::thread([this]() {
         m_context.run();
     });
+    localhost(port);
     LogInfo() << "server start";
 }
 
@@ -125,7 +128,26 @@ void Server::cleanup() {
     }
 }
 
-void Server::localhosts(uint16_t port) {
+uint16_t Server::listen(uint16_t start, uint16_t end) {
+    if (start > end || end > 65535) {
+        LogError() << "port range:" << start << "-" << end << "invalid";
+        return 0;
+    }
+    asio::ip::tcp::acceptor acceptor(m_context);
+    for (uint16_t port = start; port <= end; ++port) {
+        try {
+            m_acceptor.reset();
+            m_acceptor = std::make_unique<tcp::acceptor>(m_context, tcp::endpoint(tcp::v4(), port));
+            return port;
+        } catch (const std::exception& e) {
+            LogError() << "port:" << port << "is not available";
+            continue;
+        }
+    }
+    return 0;
+}
+
+void Server::localhost(uint16_t port) {
     tcp::resolver resolver(m_context);
     auto endpoints = resolver.resolve(asio::ip::host_name(), "");
     for (auto& endpoint : endpoints) {

@@ -9,12 +9,12 @@
 #include "logger.h"
 
 Timer::Timer(asio::io_context& context, uint64_t key) : m_timer(context), m_strander(asio::make_strand(context)), m_key(key) {
-    LogInfo() << "timer create:" << m_key;
+    LogInfo() << "timer:" << m_key << "create";
 }
 
 Timer::~Timer() {
-    LogInfo() << "timer destory" << m_key;
     stop();
+    LogInfo() << "timer:" << m_key << "destory";
 }
 
 void Timer::start(std::chrono::milliseconds interval, std::function<void()> callback, bool periodic) {

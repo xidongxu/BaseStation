@@ -30,7 +30,8 @@ private:
     Server& operator=(Server&&) = delete;
     void storage(int key, std::shared_ptr<Session>& session);
     void cleanup();
-    void localhosts(uint16_t port);
+    uint16_t listen(uint16_t start, uint16_t end);
+    void localhost(uint16_t port);
 
 private:
     int m_counter{};
