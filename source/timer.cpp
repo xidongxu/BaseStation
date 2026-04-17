@@ -8,9 +8,12 @@
 #define LOG_TAG "_timer_"
 #include "logger.h"
 
-Timer::Timer(asio::io_context& context) : m_timer(context), m_strander(asio::make_strand(context)) {}
+Timer::Timer(asio::io_context& context, uint64_t key) : m_timer(context), m_strander(asio::make_strand(context)), m_key(key) {
+    LogInfo() << "timer create:" << m_key;
+}
 
 Timer::~Timer() {
+    LogInfo() << "timer destory" << m_key;
     stop();
 }
 
@@ -62,10 +65,6 @@ void Timer::reset() {
         });
 }
 
-bool Timer::running() const {
-    return m_running.load(std::memory_order_relaxed);
-}
-
 void Timer::schedule() {
     if (!m_running)
         return;
@@ -94,13 +93,15 @@ void Timer::schedule() {
         ));
 }
 
-TimerManager::TimerManager() {
+TimerManager::TimerManager() : m_context(), m_worker(asio::make_work_guard(m_context)) {
     m_thread = std::thread([this]() {
         m_context.run();
     });
+    LogInfo() << "TimerManager start";
 }
 
 TimerManager::~TimerManager() {
+    m_worker.reset();
     m_context.stop();
     if (m_thread.joinable()) {
         m_thread.join();
@@ -113,48 +114,57 @@ TimerManager::~TimerManager() {
         }
         it = m_timers.erase(it);
     }
+    LogInfo() << "TimerManager stop";
 }
 
-uint64_t TimerManager::append(std::chrono::milliseconds interval, std::function<void()> callback, bool periodic) {
-    auto timer = std::make_shared<Timer>(m_context);
+uint64_t TimerManager::create() {
     std::lock_guard<std::mutex> lock(m_mutex);
-    timer->start(interval, std::move(callback), periodic);
-    m_timers.insert({ m_counter, timer });
+    auto key = m_counter;
+    auto timer = std::make_shared<Timer>(m_context, key);
+    m_timers.insert({ key, timer });
     m_counter = m_counter + 1;
-    return m_counter;
+    return key;
 }
 
-void TimerManager::remove(uint64_t id) {
+void TimerManager::start(uint64_t key, std::chrono::milliseconds interval, std::function<void()> callback, bool periodic) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_timers.find(id);
+    auto it = m_timers.find(key);
     if (it != m_timers.end()) {
-        it->second->stop();
-        m_timers.erase(it);
+        it->second->start(interval, std::move(callback), periodic);
     }
 }
 
-void TimerManager::stop(uint64_t id) {
+void TimerManager::stop(uint64_t key) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_timers.find(id);
+    auto it = m_timers.find(key);
     if (it != m_timers.end()) {
         it->second->stop();
     }
 }
 
-void TimerManager::reset(uint64_t id) {
+void TimerManager::reset(uint64_t key) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_timers.find(id);
+    auto it = m_timers.find(key);
     if (it != m_timers.end()) {
         it->second->reset();
     }
 }
 
-bool TimerManager::running(uint64_t id) {
+bool TimerManager::running(uint64_t key) {
     bool result = false;
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_timers.find(id);
+    auto it = m_timers.find(key);
     if (it != m_timers.end()) {
         result = it->second->running();
     }
     return result;
+}
+
+void TimerManager::remove(uint64_t key) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_timers.find(key);
+    if (it != m_timers.end()) {
+        it->second->stop();
+        m_timers.erase(it);
+    }
 }

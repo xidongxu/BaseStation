@@ -9,9 +9,9 @@
 using namespace std;
 
 void SendShortMsg::execute(std::unique_ptr<Message>& message) {
-    std::cout << "message:" << message->func() << std::endl;
+    LogInfo() << "message:" << message->func();
 }
 
 void RecvShortMsg::execute(std::unique_ptr<Message>& message) {
-    std::cout << "message:" << message->func() << std::endl;
+    LogInfo() << "message:" << message->func();
 }
