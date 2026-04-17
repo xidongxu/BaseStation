@@ -48,3 +48,9 @@ include_directories(${CMAKE_SOURCE_DIR}/vendor/lyra/include/)
 
 target_link_libraries(BaseStation source)
 include_directories(${CMAKE_SOURCE_DIR}/source/)
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/configure.json
+    ${CMAKE_BINARY_DIR}/configure.json
+    COPYONLY
+)

@@ -1,5 +1,6 @@
 ﻿#include "startup.h"
 #include "server.h"
+#include "configure.h"
 #include <lyra/lyra.hpp>
 #include <cli/cli.h>
 #include <cli/clilocalsession.h>
@@ -44,15 +45,18 @@ int main(int argc, char* argv[]) {
     bool help = false;
     bool version = false;
     uint16_t port = 5566;
+    bool specified_port = false;
+    std::string configure = "configure.json";
 
     prepare();
     auto arg = lyra::cli()
         | lyra::help(help)["-h"]["--help"]("Show help information")
-        | lyra::opt(port, "port")["-p"]["--port"]("Set server port number")
+        | lyra::opt([&](uint16_t p) { port = p, specified_port = true; }, "port")["-p"]["--port"]("Set server port number")
+        | lyra::opt(configure, "path")["-c"]["--config"]("The path to the configure.json")
         | lyra::opt(version)["-v"]["--version"]("Show version.");
     auto res = arg.parse({ argc, argv });
     if (!res) {
-        LogInfo() << "Arg parse failed: " << res.message();
+        LogError() << "arg parse failed:" << res.message();
         return -1;
     }
     if (help) {
@@ -63,8 +67,20 @@ int main(int argc, char* argv[]) {
         LogInfo() << BASE_STATION_VERSION;
         return 0;
     }
+    if (configure.empty()) {
+        LogError() << "configure.json path empty:" << configure;
+        LogError() << arg;
+        return -1;
+    }
     
-    // read configure for sim cards
+    auto& Config = Configure::instance();
+    if (!Config.load(configure)) {
+        LogError() << "configure.json parse failed";
+        return -2;
+    }
+    if (!specified_port) {
+        port = Config.port();
+    }
 
     auto &Server = Server::instance();
     Server.start(port);

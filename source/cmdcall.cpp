@@ -25,8 +25,13 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
             LogInfo() << "timer:" << timer << "timeout";
             TimerManager::instance().remove(timer);
             auto response = std::make_unique<Message>(
-                id, "RSP", "server", std::vector<std::string>{ call },
-                func, std::vector<uint8_t>{}, 1
+                id,
+                "RSP",
+                "server",
+                std::vector<std::string>{ call },
+                func,
+                std::vector<uint8_t>{}, 
+                1
             );
             MessageProcessor::instance().append(MessageProcessor::Send, response);
         });
@@ -37,7 +42,7 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
         message->to(),
         message->func(),
         message->content(), 
-        timer
+        static_cast<int>(timer)
     );
     MessageProcessor::instance().append(MessageProcessor::Send, request);
 }

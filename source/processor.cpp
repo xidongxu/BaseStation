@@ -66,8 +66,11 @@ Message::Message(const RawData& data) : m_valid(false), m_data(data) {
     }
     m_func = std::string(func->valuestring);
     int size = std::min(cJSON_GetArraySize(content), int(m_data.size()));
-    for (int i = 0; i < size; i++) {
-        cJSON* item = cJSON_GetArrayItem(content, i);
+    for (int index = 0; index < size; index++) {
+        cJSON* item = cJSON_GetArrayItem(content, index);
+        if (item == NULL) {
+            continue;
+        }
         m_content.push_back(static_cast<uint8_t>(item->valueint));
     }
     m_valid = true;
