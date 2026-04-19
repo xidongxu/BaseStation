@@ -48,3 +48,21 @@ void EquipmentManager::remove(const std::string& number) {
     }
     m_equipments.erase(it);
 }
+
+void EquipmentManager::login(const std::string& number, std::shared_ptr<Session>& session) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_equipments.find(number);
+    if (it == m_equipments.end()) {
+        return;
+    }
+    it->second->login(session);
+}
+
+void EquipmentManager::logout(const std::string& number) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_equipments.find(number);
+    if (it == m_equipments.end()) {
+        return;
+    }
+    it->second->logout();
+}

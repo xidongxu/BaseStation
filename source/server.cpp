@@ -2,6 +2,7 @@
 #include <thread>
 #include "asio.hpp"
 #include "cJSON.h"
+#include "equipment.h"
 #include "server.h"
 
 #define LOG_TAG "servers"
