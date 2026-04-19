@@ -10,7 +10,7 @@ public:
         return instance;
     }
     void load(const std::string& path);
-    void save(const std::string& path) const;
+    void save(const std::string& configure) const;
     std::string version() const { return m_version; }
     uint16_t port() const { return m_port; }
     int callSetupTime() const { return m_callSetupTime; }

@@ -8,7 +8,7 @@
 
 using namespace std;
 
-constexpr const char* default_configure = R"({
+constexpr const char* deconfigure = R"({
     "version": "1.0",
     "port": 5566,
     "callSetupTime": 30,
@@ -19,27 +19,27 @@ constexpr const char* default_configure = R"({
 })";
 
 void Configure::load(const std::string& path) {
-    m_path = path;
-    std::string content{};
-    std::ifstream file(path);
-    if (file.is_open()) {
+    m_path = path.empty() ? "configure.json" : path;
+    std::ifstream config(m_path);
+    if (config.is_open()) {
         std::stringstream buffer{};
-        buffer << file.rdbuf();
-        file.close();
-        content = buffer.str();
-        if (parse(content)) {
+        buffer << config.rdbuf();
+        config.close();
+        if (parse(buffer.str())) {
             return;
         }
         LogWarn() << "configure file parse failed, use default";
     } else {
         LogWarn() << "configure file not exist, use default";
     }
-    content = default_configure;
-    parse(content);
+    save(deconfigure);
+    parse(deconfigure);
 }
 
-void Configure::save(const std::string& path) const {
-    LogInfo() << "save configure to file not implement";
+void Configure::save(const std::string& configure) const {
+    std::ofstream config(m_path);
+    config << configure << endl;
+    config.close();
 }
 
 bool Configure::parse(const std::string& content) {
@@ -68,7 +68,7 @@ bool Configure::parse(const std::string& content) {
     m_port = port->valueint;
     m_callSetupTime = callSetupTime->valueint;
     int size = cJSON_GetArraySize(devices);
-    for (int index = 0; index < size; index++) {
+    for (int index = 0; index < size && index < 0xFF; index++) {
         cJSON* item = cJSON_GetArrayItem(devices, index);
         if (item == NULL) {
             continue;
@@ -76,4 +76,5 @@ bool Configure::parse(const std::string& content) {
         m_devices.push_back(std::string(item->valuestring));
     }
     cJSON_Delete(configure);
+    return true;
 }
