@@ -43,24 +43,24 @@ void Configure::save(const std::string& configure) const {
 }
 
 bool Configure::parse(const std::string& content) {
-    cJSON* configure = cJSON_Parse(content.c_str());
-    if (!configure) {
+    cJSON* config = cJSON_Parse(content.c_str());
+    if (!config) {
         LogError() << "configure parse failed, content:" << content;
         return false;
     }
-    if (configure == NULL || !cJSON_IsObject(configure)) {
+    if (config == NULL || !cJSON_IsObject(config)) {
         LogWarn() << "configure format invalid";
         return false;
     }
-    cJSON* version = cJSON_GetObjectItem(configure, "version");
-    cJSON* port = cJSON_GetObjectItem(configure, "port");
-    cJSON* callSetupTime = cJSON_GetObjectItem(configure, "callSetupTime");
-    cJSON* devices = cJSON_GetObjectItem(configure, "devices");
+    cJSON* version = cJSON_GetObjectItem(config, "version");
+    cJSON* port = cJSON_GetObjectItem(config, "port");
+    cJSON* callSetupTime = cJSON_GetObjectItem(config, "callSetupTime");
+    cJSON* devices = cJSON_GetObjectItem(config, "devices");
     if (version == NULL || !cJSON_IsString(version) ||
         port == NULL || !cJSON_IsNumber(port) ||
         callSetupTime == NULL || !cJSON_IsNumber(callSetupTime) ||
         devices == NULL || !cJSON_IsArray(devices)) {
-        cJSON_Delete(configure);
+        cJSON_Delete(config);
         LogWarn() << "configure structure invalid";
         return false;
     }
@@ -75,6 +75,6 @@ bool Configure::parse(const std::string& content) {
         }
         m_devices.push_back(std::string(item->valuestring));
     }
-    cJSON_Delete(configure);
+    cJSON_Delete(config);
     return true;
 }
