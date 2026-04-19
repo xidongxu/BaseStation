@@ -21,7 +21,7 @@ public:
     CommandBuilder(CommandBuilder&&) = delete;
     CommandBuilder& operator=(CommandBuilder&&) = delete;
     static CommandBuilder& instance() {
-        static CommandBuilder instance;
+        static CommandBuilder instance{};
         return instance;
     }
     void registerCommand(const std::string& name, Creator creator);

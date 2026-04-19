@@ -36,7 +36,7 @@ public:
     TimerManager(TimerManager&&) = delete;
     TimerManager& operator=(TimerManager&&) = delete;
     static TimerManager& instance() {
-        static TimerManager instance;
+        static TimerManager instance{};
         return instance;
     }
     uint64_t create();

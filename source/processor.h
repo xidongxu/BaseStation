@@ -55,7 +55,7 @@ public:
     MessageProcessor(MessageProcessor&&) = delete;
     MessageProcessor& operator=(MessageProcessor&&) = delete;
     static MessageProcessor& instance() {
-        static MessageProcessor instance;
+        static MessageProcessor instance{};
         return instance;
     }
     void process();

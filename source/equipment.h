@@ -26,7 +26,7 @@ public:
     EquipmentManager(EquipmentManager&&) = delete;
     EquipmentManager& operator=(EquipmentManager&&) = delete;
     static EquipmentManager& instance() {
-        static EquipmentManager instance;
+        static EquipmentManager instance{};
         return instance;
     }
 

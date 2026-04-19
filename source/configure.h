@@ -10,7 +10,7 @@ public:
     Configure(Configure&&) = delete;
     Configure& operator=(Configure&&) = delete;
     static Configure& instance() {
-        static Configure instance;
+        static Configure instance{};
         return instance;
     }
     void load(const std::string& path);

@@ -42,7 +42,7 @@ public:
     Server(Server&&) = delete;
     Server& operator=(Server&&) = delete;
     static Server& instance() {
-        static Server instance;
+        static Server instance{};
         return instance;
     }
     void start(uint16_t port);
