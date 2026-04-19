@@ -39,6 +39,7 @@ public:
         return instance;
     }
     void create(const std::vector<std::string>& numbers);
+    std::shared_ptr<Equipment> equipment(const std::string number);
     Equipment::State state(const std::string number);
     Equipment::Voice voice(const std::string number);
     bool login(const std::string& number, std::shared_ptr<Session>& session);

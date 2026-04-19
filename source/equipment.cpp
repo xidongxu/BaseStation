@@ -59,6 +59,16 @@ void EquipmentManager::create(const std::vector<std::string>& numbers) {
     }
 }
 
+std::shared_ptr<Equipment> EquipmentManager::equipment(const std::string number) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_equipments.find(number);
+    if (it == m_equipments.end()) {
+        LogWarn() << "equipment:" << number << "not register";
+        return nullptr;
+    }
+    return it->second;
+}
+
 void EquipmentManager::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
     for (auto it = m_equipments.begin(); it != m_equipments.end();) {

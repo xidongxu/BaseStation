@@ -4,6 +4,7 @@
 #include "cJSON.h"
 #include "command.h"
 #include "cmdcall.h"
+#include "equipment.h"
 #include "timer.h"
 
 #define LOG_TAG "command"
@@ -13,22 +14,36 @@ using namespace std;
 using namespace std::chrono;
 
 void MakeCall::execute(std::unique_ptr<Message>& message) {
-    LogInfo() << "message:" << message->func();
-    auto timer = TimerManager::instance().create();
     auto id = message->id();
-    auto call = message->from();
+    auto from = message->from();
+    auto to = message->to().at(0);
     auto func = message->func();
+    LogInfo() << "message:" << message->func() << from << "call" << to;
+    auto equipment = EquipmentManager::instance().equipment(to);
+    if (!equipment) {
+        auto response = std::make_unique<Message>(
+            id,
+            "RSP",
+            "server",
+            std::vector<std::string>{ from },
+            func,
+            message->content(),
+            static_cast<int>(100)
+        );
+        MessageProcessor::instance().append(MessageProcessor::Send, response);
+    }
+    auto timer = TimerManager::instance().create();
     TimerManager::instance().start(
         timer, 
         seconds(30), 
-        [timer, id, call, func]() {
+        [timer, id, from, func]() {
             LogInfo() << "timer:" << timer << "timeout";
             TimerManager::instance().remove(timer);
             auto response = std::make_unique<Message>(
                 id,
                 "RSP",
                 "server",
-                std::vector<std::string>{ call },
+                std::vector<std::string>{ from },
                 func,
                 std::vector<uint8_t>{}, 
                 1
