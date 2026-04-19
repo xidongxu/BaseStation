@@ -31,6 +31,10 @@ private:
 
 class TimerManager {
 public:
+    TimerManager(const TimerManager&) = delete;
+    TimerManager& operator=(const TimerManager&) = delete;
+    TimerManager(TimerManager&&) = delete;
+    TimerManager& operator=(TimerManager&&) = delete;
     static TimerManager& instance() {
         static TimerManager instance;
         return instance;
@@ -45,10 +49,6 @@ public:
 private:
     TimerManager();
     ~TimerManager();
-    TimerManager(const TimerManager&) = delete;
-    TimerManager& operator=(const TimerManager&) = delete;
-    TimerManager(TimerManager&&) = delete;
-    TimerManager& operator=(TimerManager&&) = delete;
 
 private:
     uint64_t m_counter{};

@@ -50,7 +50,10 @@ private:
 class MessageProcessor {
 public:
     enum Type { Recv, Send };
-
+    MessageProcessor(const MessageProcessor&) = delete;
+    MessageProcessor& operator=(const MessageProcessor&) = delete;
+    MessageProcessor(MessageProcessor&&) = delete;
+    MessageProcessor& operator=(MessageProcessor&&) = delete;
     static MessageProcessor& instance() {
         static MessageProcessor instance;
         return instance;
@@ -66,10 +69,6 @@ public:
 private:
     MessageProcessor();
     ~MessageProcessor();
-    MessageProcessor(const MessageProcessor&) = delete;
-    MessageProcessor& operator=(const MessageProcessor&) = delete;
-    MessageProcessor(MessageProcessor&&) = delete;
-    MessageProcessor& operator=(MessageProcessor&&) = delete;
 
 private:
     std::mutex m_mutex{};

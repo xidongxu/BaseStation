@@ -5,6 +5,10 @@
 
 class Configure {
 public:
+    Configure(const Configure&) = delete;
+    Configure& operator=(const Configure&) = delete;
+    Configure(Configure&&) = delete;
+    Configure& operator=(Configure&&) = delete;
     static Configure& instance() {
         static Configure instance;
         return instance;
@@ -19,10 +23,6 @@ public:
 private:
     Configure() = default;
     ~Configure() = default;
-    Configure(const Configure&) = delete;
-    Configure& operator=(const Configure&) = delete;
-    Configure(Configure&&) = delete;
-    Configure& operator=(Configure&&) = delete;
     bool parse(const std::string& content);
 
 private:

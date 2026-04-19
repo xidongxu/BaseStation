@@ -31,11 +31,6 @@ LogStream& LogStream::hex(const uint8_t* data, size_t len) {
     return *this;
 }
 
-Logger& Logger::instance() {
-    static Logger instance("BaseStation.log");
-    return instance;
-}
-
 void Logger::setLevel(Level level) {
     m_level = level;
 }

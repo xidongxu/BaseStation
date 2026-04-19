@@ -37,6 +37,10 @@ private:
 
 class Server {
 public:
+    Server(const Server&) = delete;
+    Server& operator=(const Server&) = delete;
+    Server(Server&&) = delete;
+    Server& operator=(Server&&) = delete;
     static Server& instance() {
         static Server instance;
         return instance;
@@ -52,10 +56,6 @@ public:
 private:
     Server() = default;
     ~Server() { close(); }
-    Server(const Server&) = delete;
-    Server& operator=(const Server&) = delete;
-    Server(Server&&) = delete;
-    Server& operator=(Server&&) = delete;
     void storage(int key, std::shared_ptr<Session>& session);
     void cleanup();
     uint16_t listen(uint16_t start, uint16_t end);

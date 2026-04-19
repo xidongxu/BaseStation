@@ -38,15 +38,19 @@ private:
 class Logger {
 public:
     using Level = LogStream::Level;
-
-    static Logger& instance();
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+    Logger(Logger&&) = delete;
+    Logger& operator=(Logger&&) = delete;
+    static Logger& instance() {
+        static Logger instance("BaseStation.log");
+        return instance;
+    }
     void setLevel(Level level);
     LogStream log(Level level, const std::string& tag);
     void flush(Level level, const std::string& msg, const std::string& tag);
 
 private:
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
     Logger(const std::string& filename);
     ~Logger();
     std::string getThread();
