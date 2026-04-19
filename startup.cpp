@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
     port = specified ? Config.port() : port;
 
     auto& Equips = EquipmentManager::instance();
-    Equips.append(Config.devices());
+    Equips.create(Config.devices());
 
     auto &Server = Server::instance();
     Server.start(port);

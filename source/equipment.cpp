@@ -10,59 +10,124 @@ using namespace std;
 using asio::ip::tcp;
 
 Equipment::Equipment(std::string number) : m_number(std::move(number)) {
-    m_login = Login::Offline;
+    m_state = State::Offline;
     m_voice = Voice::Idle;
-    LogInfo() << "equipment:" << this << "create";
+    LogInfo() << "equipment:" << m_number << "create";
 }
 
 Equipment::~Equipment() {
-    LogInfo() << "equipment:" << this << "destory";
+    LogInfo() << "equipment:" << m_number << "destory";
 }
 
-void Equipment::send(const std::unique_ptr<Message>& message) {
+bool Equipment::send(const std::unique_ptr<Message>& message) {
     if (!m_session) {
-        return;
+        LogWarn() << "equipment:" << m_number << "not login";
+        return false;
     }
     m_session->send(message);
+    return true;
 }
 
-void EquipmentManager::append(const std::string& number) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_equipments.contains(number)) {
-        return;
+bool Equipment::login(std::shared_ptr<Session>& session) {
+    if (m_session) {
+        LogWarn() << "equipment:" << m_number << "already login";
+        return false;
     }
-    m_equipments.insert({ number, std::make_shared<Equipment>(number) });
+    LogInfo() << "equipment:" << m_number << "login";
+    m_session = session;
+    return true;
 }
 
-void EquipmentManager::append(const std::vector<std::string>& numbers) {
+bool Equipment::logout() {
+    if (!m_session) {
+        return false;
+    }
+    LogInfo() << "equipment:" << m_number << "logout";
+    m_session->close();
+    m_session.reset();
+    return true;
+}
+
+void EquipmentManager::create(const std::vector<std::string>& numbers) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto& number : numbers) {
-        append(number);
+        if (m_equipments.contains(number)) {
+            LogWarn() << "equipment:" << number << "already register";
+            continue;
+        }
+        m_equipments.insert({ number, std::make_shared<Equipment>(number) });
     }
 }
 
-void EquipmentManager::remove(const std::string& number) {
+void EquipmentManager::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_equipments.find(number);
-    if (it == m_equipments.end()) {
-        return;
+    for (auto it = m_equipments.begin(); it != m_equipments.end();) {
+        it->second->logout();
+        it = m_equipments.erase(it);
     }
-    m_equipments.erase(it);
 }
 
-void EquipmentManager::login(const std::string& number, std::shared_ptr<Session>& session) {
+Equipment::State EquipmentManager::state(const std::string number) {
+    if (number.empty()) {
+        return Equipment::Offline;
+    }
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_equipments.find(number);
     if (it == m_equipments.end()) {
-        return;
+        LogWarn() << "equipment:" << number << "not register";
+        return Equipment::Offline;
     }
-    it->second->login(session);
+    return it->second->state();
 }
 
-void EquipmentManager::logout(const std::string& number) {
+Equipment::Voice EquipmentManager::voice(const std::string number) {
+    if (number.empty()) {
+        return Equipment::Idle;
+    }
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_equipments.find(number);
     if (it == m_equipments.end()) {
-        return;
+        LogWarn() << "equipment:" << number << "not register";
+        return Equipment::Idle;
     }
-    it->second->logout();
+    return it->second->voice();
+}
+
+bool EquipmentManager::login(const std::string& number, std::shared_ptr<Session>& session) {
+    if (number.empty()) {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_equipments.find(number);
+    if (it == m_equipments.end()) {
+        LogWarn() << "equipment:" << number << "not register";
+        return false;
+    }
+    return it->second->login(session);
+}
+
+bool EquipmentManager::logout(const std::string& number) {
+    if (number.empty()) {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_equipments.find(number);
+    if (it == m_equipments.end()) {
+        LogWarn() << "equipment:" << number << "not register";
+        return false;
+    }
+    return it->second->logout();
+}
+
+bool EquipmentManager::send(const std::string& number, const std::unique_ptr<Message>& message) {
+    if (number.empty()) {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_equipments.find(number);
+    if (it == m_equipments.end()) {
+        LogWarn() << "equipment:" << number << "not register";
+        return false;
+    }
+    return it->second->send(message);
 }

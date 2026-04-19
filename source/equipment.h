@@ -17,9 +17,9 @@ public:
     State state() const { return m_state; }
     Voice voice() const { return m_voice; }
     std::string number() const { return m_number; }
-    void send(const std::unique_ptr<Message>& message);
-    void login(std::shared_ptr<Session>& session) { m_session = session; }
-    void logout() { m_session.reset(); }
+    bool login(std::shared_ptr<Session>& session);
+    bool logout();
+    bool send(const std::unique_ptr<Message>& message);
 
 private:
     State m_state{};
@@ -38,11 +38,13 @@ public:
         static EquipmentManager instance{};
         return instance;
     }
-    void append(const std::string& number);
-    void append(const std::vector<std::string>& numbers);
-    void remove(const std::string& number);
-    void login(const std::string& number, std::shared_ptr<Session>& session);
-    void logout(const std::string& number);
+    void create(const std::vector<std::string>& numbers);
+    Equipment::State state(const std::string number);
+    Equipment::Voice voice(const std::string number);
+    bool login(const std::string& number, std::shared_ptr<Session>& session);
+    bool logout(const std::string& number);
+    bool send(const std::string& number, const std::unique_ptr<Message>& message);
+    void clear();
 
 private:
     EquipmentManager() = default;

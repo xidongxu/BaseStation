@@ -14,12 +14,12 @@ using asio::ip::tcp;
 Session::Session(tcp::socket socket, asio::io_context& context, int key) : m_socket(std::move(socket)), m_timer(context), m_key(key) {
     m_address = m_socket.remote_endpoint().address().to_string();
     m_port = m_socket.remote_endpoint().port();
-    LogInfo() << "client:" << this << "create";
+    LogInfo() << "session:" << this << "create";
 }
 
 Session::~Session() {
     do_close(Reason::Manual);
-    LogInfo() << "client:" << this << "destory";
+    LogInfo() << "session:" << this << "destory";
 }
 
 void Session::start() {
@@ -53,7 +53,7 @@ void Session::do_timeout() {
                 return;
             }
             if (!error) {
-                LogInfo() << "client:" << session.get() << "timeout";
+                LogInfo() << "session:" << session.get() << "timeout";
                 session->do_close(Reason::Manual);
             }
         }
@@ -80,7 +80,7 @@ void Session::do_receive() {
                     session->do_timeout();
                 }
                 if (!result) {
-                    LogWarn() << "client:" << session.get() << "duplicate, close by server";
+                    LogWarn() << "session:" << session.get() << "close by server";
                     session->do_close(Reason::Manual);
                     return;
                 }
@@ -116,9 +116,7 @@ void Session::do_close(Reason reason) {
         return;
     }
     Server::instance().remove(m_key);
-    if (m_number.empty() == false) {
-        Server::instance().remove(m_number);
-    }
+    EquipmentManager::instance().logout(m_number);
     close();
 }
 
@@ -126,20 +124,20 @@ void Session::do_disconnect(const asio::error_code& error) {
     Reason reason = Reason::Clean;
     switch (error.value()) {
     case asio::error::eof:
-        LogInfo() << "client:" << this << "closed by client";
+        LogInfo() << "session:" << this << "closed by session";
         reason = Reason::Clean;
         break;
     case asio::error::connection_reset:
     case asio::error::connection_aborted:
-        LogInfo() << "client:" << this << "reset by client";
+        LogInfo() << "session:" << this << "reset by session";
         reason = Reason::Reset;
         break;
     case asio::error::operation_aborted:
-        LogInfo() << "client:" << this << "aborted by server";
+        LogInfo() << "session:" << this << "aborted by server";
         reason = Reason::Manual;
         break;
     default:
-        LogInfo() << "client:" << this << "has error:" << error.message();
+        LogInfo() << "session:" << this << "has error:" << error.message();
         reason = Reason::Error;
         break;
     }
@@ -175,7 +173,7 @@ void Server::close() {
         m_acceptor->close(error);
     }
     m_acceptor.reset();
-    cleanup();
+    clear();
     m_closed = true;
     LogInfo() << "server closed";
 }
@@ -185,7 +183,7 @@ void Server::accept() {
         [this](asio::error_code error, tcp::socket socket) {
             if (!error) {
                 auto session = std::make_shared<Session>(std::move(socket), m_context, m_counter);
-                storage(m_counter, session);
+                cache(m_counter, session);
                 m_counter++;
                 session->start();
             } else {
@@ -198,70 +196,34 @@ void Server::accept() {
 void Server::send(const std::unique_ptr<Message>& message) {
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto& number : message->to()) {
-        if (m_sessions.contains(number)) {
-            m_sessions[number]->send(message);
-            return;
-        }
+        EquipmentManager::instance().send(number, message);
     }
 }
 
 bool Server::append(int key, std::string number) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto cache = m_makeshifts.find(key);
-    if (cache == m_makeshifts.end()) {
+    auto cache = m_sessions.find(key);
+    if (cache == m_sessions.end()) {
         return true;
     }
     auto session = cache->second;
-    m_makeshifts.erase(cache);
-
-    auto it = m_sessions.find(number);
-    if (it != m_sessions.end()) {
-        if (it->second != session) {
-            return false;
-        }
-        return true;
-    }
-    m_sessions.insert({ number, session });
-    LogInfo() << "client:" << number << "login";
-    return true;
-}
-
-bool Server::remove(std::string number) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_sessions.find(number);
-    if (it == m_sessions.end()) {
-        return false;
-    }
-    m_sessions.erase(it);
-    LogInfo() << "client:" << number << "logout";
-    return true;
+    m_sessions.erase(cache);
+    return EquipmentManager::instance().login(number, session);
 }
 
 bool Server::remove(int key) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_makeshifts.find(key);
-    if (it == m_makeshifts.end()) {
+    auto it = m_sessions.find(key);
+    if (it == m_sessions.end()) {
         return false;
     }
-    m_makeshifts.erase(it);
+    m_sessions.erase(it);
     return true;
 }
 
-void Server::storage(int key, std::shared_ptr<Session>& session) {
+void Server::cache(int key, std::shared_ptr<Session>& session) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_makeshifts.insert({ key, session });
-}
-
-void Server::cleanup() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    for (auto it = m_makeshifts.begin(); it != m_makeshifts.end();) {
-        it->second->close();
-        it = m_makeshifts.erase(it);
-    }
-    for (auto it = m_sessions.begin(); it != m_sessions.end(); ) {
-        it->second->close();
-        it = m_sessions.erase(it);
-    }
+    m_sessions.insert({ key, session });
 }
 
 uint16_t Server::listen(uint16_t start, uint16_t end) {
@@ -293,4 +255,13 @@ void Server::localhost(uint16_t port) {
         auto address = endpoint.endpoint().address().to_string();
         LogInfo() << address << ":" << port;
     }
+}
+
+void Server::clear() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (auto it = m_sessions.begin(); it != m_sessions.end();) {
+        it->second->close();
+        it = m_sessions.erase(it);
+    }
+    EquipmentManager::instance().clear();
 }

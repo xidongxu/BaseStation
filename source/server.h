@@ -50,16 +50,15 @@ public:
     void accept();
     void send(const std::unique_ptr<Message> &message);
     bool append(int key, std::string number);
-    bool remove(std::string number);
     bool remove(int key);
 
 private:
     Server() = default;
     ~Server() { close(); }
-    void storage(int key, std::shared_ptr<Session>& session);
-    void cleanup();
+    void cache(int key, std::shared_ptr<Session>& session);
     uint16_t listen(uint16_t start, uint16_t end);
     void localhost(uint16_t port);
+    void clear();
 
 private:
     int m_counter{};
@@ -68,6 +67,5 @@ private:
     std::atomic<bool> m_closed{};
     asio::io_context m_context{};
     std::unique_ptr<asio::ip::tcp::acceptor> m_acceptor{};
-    std::unordered_map<int, std::shared_ptr<Session>> m_makeshifts{};
-    std::unordered_map<std::string, std::shared_ptr<Session>> m_sessions{};
+    std::unordered_map<int, std::shared_ptr<Session>> m_sessions{};
 };
