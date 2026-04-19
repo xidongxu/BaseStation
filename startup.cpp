@@ -1,6 +1,7 @@
 ﻿#include "startup.h"
 #include "server.h"
 #include "configure.h"
+#include "equipment.h"
 #include <lyra/lyra.hpp>
 #include <cli/cli.h>
 #include <cli/clilocalsession.h>
@@ -76,6 +77,9 @@ int main(int argc, char* argv[]) {
     auto& Config = Configure::instance();
     Config.load(configure);
     port = specified ? Config.port() : port;
+
+    auto& Equips = EquipmentManager::instance();
+    Equips.append(Config.devices());
 
     auto &Server = Server::instance();
     Server.start(port);

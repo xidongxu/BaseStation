@@ -9,12 +9,19 @@
 
 class Equipment : public std::enable_shared_from_this<Equipment> {
 public:
+    enum Login { Offline, Online, Shutdown };
+    enum Voice { Idle, Calling, Ringing, Talking };
+
     explicit Equipment(std::string number);
-    ~Equipment() = default;
-    void send(const std::unique_ptr<Message>& message);
+    ~Equipment();
+    Login login() const { return m_login; }
+    Voice voice() const { return m_voice; }
     std::string number() const { return m_number; }
+    void send(const std::unique_ptr<Message>& message);
 
 private:
+    Login m_login{};
+    Voice m_voice{};
     std::string m_number{};
     std::shared_ptr<Session> m_session{};
 };
@@ -29,6 +36,9 @@ public:
         static EquipmentManager instance{};
         return instance;
     }
+    void append(const std::string& number);
+    void append(const std::vector<std::string>& numbers);
+    void remove(const std::string& number);
 
 private:
     EquipmentManager() = default;
