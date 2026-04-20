@@ -13,8 +13,10 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CALL_TARGET_OFFLINE     1000
-#define CALL_TARGET_SHUTDOWN    1001
+#define CALL_TARGET_EMPTY_NUMBER    1000
+#define CALL_TARGET_OFFLINE         1001
+#define CALL_TARGET_SHUTDOWN        1002
+#define CALL_TARGET_NO_ANSWER       1003
 
 void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto id = message->id();
@@ -23,8 +25,22 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto func = message->func();
     LogInfo() << "message:" << message->func() << from << "call" << to;
     auto equipment = EquipmentManager::instance().equipment(to);
-    if (!equipment || equipment->state() != Equipment::Online) {
-        auto result = equipment->state() == Equipment::Offline ? CALL_TARGET_OFFLINE : CALL_TARGET_SHUTDOWN;
+    auto result = CALL_TARGET_EMPTY_NUMBER;
+    if (!equipment) {
+        auto response = std::make_unique<Message>(
+            id,
+            "RSP",
+            "server",
+            std::vector<std::string>{ from },
+            func,
+            message->content(),
+            static_cast<int>(result)
+        );
+        MessageProcessor::instance().append(MessageProcessor::Send, response);
+        return;
+    }
+    if (equipment->state() != Equipment::Online) {
+        result = equipment->state() == Equipment::Offline ? CALL_TARGET_OFFLINE : CALL_TARGET_SHUTDOWN;
         auto response = std::make_unique<Message>(
             id,
             "RSP",
@@ -44,6 +60,7 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
         [timer, id, from, func]() {
             LogInfo() << "timer:" << timer << "timeout";
             TimerManager::instance().remove(timer);
+            auto result = CALL_TARGET_NO_ANSWER;
             auto response = std::make_unique<Message>(
                 id,
                 "RSP",
@@ -51,7 +68,7 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
                 std::vector<std::string>{ from },
                 func,
                 std::vector<uint8_t>{}, 
-                1
+                result
             );
             MessageProcessor::instance().append(MessageProcessor::Send, response);
         });
@@ -62,13 +79,14 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
         message->to(),
         message->func(),
         message->content(), 
-        static_cast<int>(timer)
-    );
+        static_cast<int>(timer));
     MessageProcessor::instance().append(MessageProcessor::Send, request);
 }
 
 void AnswerCall::execute(std::unique_ptr<Message>& message) {
-    LogInfo() << "message:" << message->func();
+    auto from = message->from();
+    auto to = message->to().at(0);
+    LogInfo() << "message:" << message->func() << from << "answer call" << to;
     auto timer = message->result();
     TimerManager::instance().remove(timer);
     auto request = std::make_unique<Message>(
@@ -84,7 +102,9 @@ void AnswerCall::execute(std::unique_ptr<Message>& message) {
 }
 
 void EndCall::execute(std::unique_ptr<Message>& message) {
-    LogInfo() << "message:" << message->func();
+    auto from = message->from();
+    auto to = message->to().at(0);
+    LogInfo() << "message:" << message->func() << from << "end call" << to;
     auto timer = message->result();
     TimerManager::instance().remove(timer);
     auto request = std::make_unique<Message>(
@@ -100,7 +120,9 @@ void EndCall::execute(std::unique_ptr<Message>& message) {
 }
 
 void RejectCall::execute(std::unique_ptr<Message>& message) {
-    LogInfo() << "message:" << message->func();
+    auto from = message->from();
+    auto to = message->to().at(0);
+    LogInfo() << "message:" << message->func() << from << "reject call" << to;
     auto timer = message->result();
     TimerManager::instance().remove(timer);
     auto request = std::make_unique<Message>(
