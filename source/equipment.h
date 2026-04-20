@@ -18,7 +18,7 @@ public:
     Voice voice() const { return m_voice; }
     std::string number() const { return m_number; }
     bool login(std::shared_ptr<Session>& session);
-    bool logout();
+    bool logout(State reason);
     bool send(const std::unique_ptr<Message>& message);
 
 private:
@@ -43,7 +43,7 @@ public:
     Equipment::State state(const std::string number);
     Equipment::Voice voice(const std::string number);
     bool login(const std::string& number, std::shared_ptr<Session>& session);
-    bool logout(const std::string& number);
+    bool logout(const std::string& number, Equipment::State reason);
     bool send(const std::string& number, const std::unique_ptr<Message>& message);
     void clear();
 

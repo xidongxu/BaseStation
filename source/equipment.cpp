@@ -34,15 +34,17 @@ bool Equipment::login(std::shared_ptr<Session>& session) {
         return false;
     }
     LogInfo() << "equipment:" << m_number << "login";
+    m_state = Equipment::Online;
     m_session = session;
     return true;
 }
 
-bool Equipment::logout() {
+bool Equipment::logout(State reason) {
     if (!m_session) {
         return false;
     }
-    LogInfo() << "equipment:" << m_number << "logout";
+    LogInfo() << "equipment:" << m_number << "logout, reason:" << reason;
+    m_state = reason;
     m_session->close();
     m_session.reset();
     return true;
@@ -72,7 +74,7 @@ std::shared_ptr<Equipment> EquipmentManager::equipment(const std::string number)
 void EquipmentManager::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
     for (auto it = m_equipments.begin(); it != m_equipments.end();) {
-        it->second->logout();
+        it->second->logout(Equipment::Offline);
         it = m_equipments.erase(it);
     }
 }
@@ -116,7 +118,7 @@ bool EquipmentManager::login(const std::string& number, std::shared_ptr<Session>
     return it->second->login(session);
 }
 
-bool EquipmentManager::logout(const std::string& number) {
+bool EquipmentManager::logout(const std::string& number, Equipment::State reason) {
     if (number.empty()) {
         return false;
     }
@@ -126,7 +128,7 @@ bool EquipmentManager::logout(const std::string& number) {
         LogWarn() << "equipment:" << number << "not register";
         return false;
     }
-    return it->second->logout();
+    return it->second->logout(reason);
 }
 
 bool EquipmentManager::send(const std::string& number, const std::unique_ptr<Message>& message) {

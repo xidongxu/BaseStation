@@ -116,7 +116,8 @@ void Session::do_close(Reason reason) {
         return;
     }
     Server::instance().remove(m_key);
-    EquipmentManager::instance().logout(m_number);
+    auto result = (reason == Reason::Clean) ? Equipment::Shutdown : Equipment::Offline;
+    EquipmentManager::instance().logout(m_number, result);
     close();
 }
 

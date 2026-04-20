@@ -13,6 +13,9 @@
 using namespace std;
 using namespace std::chrono;
 
+#define CALL_TARGET_OFFLINE     1000
+#define CALL_TARGET_SHUTDOWN    1001
+
 void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto id = message->id();
     auto from = message->from();
@@ -20,7 +23,8 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto func = message->func();
     LogInfo() << "message:" << message->func() << from << "call" << to;
     auto equipment = EquipmentManager::instance().equipment(to);
-    if (!equipment) {
+    if (!equipment || equipment->state() != Equipment::Online) {
+        auto result = equipment->state() == Equipment::Offline ? CALL_TARGET_OFFLINE : CALL_TARGET_SHUTDOWN;
         auto response = std::make_unique<Message>(
             id,
             "RSP",
@@ -28,9 +32,10 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
             std::vector<std::string>{ from },
             func,
             message->content(),
-            static_cast<int>(100)
+            static_cast<int>(result)
         );
         MessageProcessor::instance().append(MessageProcessor::Send, response);
+        return;
     }
     auto timer = TimerManager::instance().create();
     TimerManager::instance().start(
