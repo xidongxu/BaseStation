@@ -13,6 +13,8 @@
 using namespace std;
 using namespace std::chrono;
 
+#define CALL_FUNC                   "CALL_NOTIFY"
+
 #define CALL_TARGET_EMPTY_NUMBER    1000
 #define CALL_TARGET_OFFLINE         1001
 #define CALL_TARGET_SHUTDOWN        1002
@@ -23,8 +25,10 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto func = message->func();
+    auto uuid = message->uuid();
     LogInfo() << "message:" << message->func() << from << "call" << to;
     auto equipment = EquipmentManager::instance().equipment(to);
+    // Notify caller that the called phone number is empty.
     auto result = CALL_TARGET_EMPTY_NUMBER;
     if (!equipment) {
         auto response = std::make_unique<Message>(
@@ -32,13 +36,15 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
             "RSP",
             "server",
             std::vector<std::string>{ from },
-            func,
+            CALL_FUNC,
+            uuid,
             message->content(),
             static_cast<int>(result)
         );
         MessageProcessor::instance().append(MessageProcessor::Send, response);
         return;
     }
+    // Notify caller that the called phone is not online.
     if (equipment->state() != Equipment::Online) {
         result = equipment->state() == Equipment::Offline ? CALL_TARGET_OFFLINE : CALL_TARGET_SHUTDOWN;
         auto response = std::make_unique<Message>(
@@ -46,18 +52,20 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
             "RSP",
             "server",
             std::vector<std::string>{ from },
-            func,
+            CALL_FUNC,
+            uuid,
             message->content(),
             static_cast<int>(result)
         );
         MessageProcessor::instance().append(MessageProcessor::Send, response);
         return;
     }
+    // Start the answer wait timer.
     auto timer = TimerManager::instance().create();
     TimerManager::instance().start(
         timer, 
         seconds(30), 
-        [timer, id, from, func]() {
+        [timer, id, from, func, uuid]() {
             LogInfo() << "timer:" << timer << "timeout";
             TimerManager::instance().remove(timer);
             auto result = CALL_TARGET_NO_ANSWER;
@@ -66,21 +74,36 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
                 "RSP",
                 "server",
                 std::vector<std::string>{ from },
-                func,
+                CALL_FUNC,
+                uuid,
                 std::vector<uint8_t>{}, 
                 result
             );
             MessageProcessor::instance().append(MessageProcessor::Send, response);
         });
+    // Notify called of incoming call
     auto request = std::make_unique<Message>(
         message->id(), 
         message->type(), 
         message->from(), 
         message->to(),
-        message->func(),
+        CALL_FUNC,
+        message->uuid(),
         message->content(), 
         static_cast<int>(timer));
     MessageProcessor::instance().append(MessageProcessor::Send, request);
+    // Notify the caller that the called phone is ringing.
+    auto response = std::make_unique<Message>(
+        message->id(),
+        "RSP",
+        "server",
+        std::vector<std::string>{ from },
+        CALL_FUNC,
+        message->uuid(),
+        std::vector<uint8_t>{},
+        result
+    );
+    MessageProcessor::instance().append(MessageProcessor::Send, response);
 }
 
 void AnswerCall::execute(std::unique_ptr<Message>& message) {
@@ -91,46 +114,30 @@ void AnswerCall::execute(std::unique_ptr<Message>& message) {
     TimerManager::instance().remove(timer);
     auto request = std::make_unique<Message>(
         message->id(),
-        message->type(),
+        "RSP",
         message->from(),
         message->to(),
-        message->func(),
+        CALL_FUNC,
+        message->uuid(),
         message->content(),
         0
     );
     MessageProcessor::instance().append(MessageProcessor::Send, request);
 }
 
-void EndCall::execute(std::unique_ptr<Message>& message) {
+void HangupCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
-    LogInfo() << "message:" << message->func() << from << "end call" << to;
+    LogInfo() << "message:" << message->func() << from << "hangup call" << to;
     auto timer = message->result();
     TimerManager::instance().remove(timer);
     auto request = std::make_unique<Message>(
         message->id(),
-        message->type(),
+        "RSP",
         message->from(),
         message->to(),
-        message->func(),
-        message->content(),
-        0
-    );
-    MessageProcessor::instance().append(MessageProcessor::Send, request);
-}
-
-void RejectCall::execute(std::unique_ptr<Message>& message) {
-    auto from = message->from();
-    auto to = message->to().at(0);
-    LogInfo() << "message:" << message->func() << from << "reject call" << to;
-    auto timer = message->result();
-    TimerManager::instance().remove(timer);
-    auto request = std::make_unique<Message>(
-        message->id(),
-        message->type(),
-        message->from(),
-        message->to(),
-        message->func(),
+        CALL_FUNC,
+        message->uuid(),
         message->content(),
         0
     );

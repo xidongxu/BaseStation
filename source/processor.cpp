@@ -11,20 +11,20 @@
 using namespace std;
 
 Message::Message(const RawData& data) : m_valid(false), m_data(data) {
-    char* start = (char*)m_data.data() + 2;
+    char* start = reinterpret_cast<char*>(m_data.data()) + 2;
     if (m_data[0] != 0x55 || m_data[1] != 0x55 || start[0] == '\0') {
         LogWarn() << "Invalid message sync word";
         return;
     }
     cJSON* message = cJSON_Parse(start);
-    if (message == NULL || !cJSON_IsObject(message)) {
+    if (message == nullptr || !cJSON_IsObject(message)) {
         LogWarn() << "Invalid message format";
         return;
     }
     cJSON* header = cJSON_GetObjectItem(message, "header");
     cJSON* payload = cJSON_GetObjectItem(message, "payload");
-    if (header == NULL || !cJSON_IsObject(header) ||
-        payload == NULL || !cJSON_IsObject(payload)) {
+    if (header == nullptr || !cJSON_IsObject(header) ||
+        payload == nullptr || !cJSON_IsObject(payload)) {
         cJSON_Delete(message);
         LogWarn() << "Invalid message structure";
         return;
@@ -35,12 +35,12 @@ Message::Message(const RawData& data) : m_valid(false), m_data(data) {
     cJSON* timestamp = cJSON_GetObjectItem(header, "timestamp");
     cJSON* from = cJSON_GetObjectItem(header, "from");
     cJSON* to = cJSON_GetObjectItem(header, "to");
-    if (version == NULL || !cJSON_IsString(version) ||
-        id == NULL || !cJSON_IsNumber(id) ||
-        type == NULL || !cJSON_IsString(type) ||
-        timestamp == NULL || !cJSON_IsNumber(timestamp) ||
-        from == NULL || !cJSON_IsString(from) ||
-        to == NULL || !cJSON_IsArray(to)) {
+    if (version == nullptr || !cJSON_IsString(version) ||
+        id == nullptr || !cJSON_IsNumber(id) ||
+        type == nullptr || !cJSON_IsString(type) ||
+        timestamp == nullptr || !cJSON_IsNumber(timestamp) ||
+        from == nullptr || !cJSON_IsString(from) ||
+        to == nullptr || !cJSON_IsArray(to)) {
         cJSON_Delete(message);
         LogWarn() << "Invalid message header";
         return;
@@ -52,23 +52,26 @@ Message::Message(const RawData& data) : m_valid(false), m_data(data) {
     m_from = std::string(from->valuestring);
     for (int i = 0; i < cJSON_GetArraySize(to); i++) {
         cJSON* item = cJSON_GetArrayItem(to, i);
-        m_to.push_back(std::string(item->valuestring));
+        m_to.emplace_back(item->valuestring);
     }
     cJSON* func = cJSON_GetObjectItem(payload, "func");
+    cJSON* uuid = cJSON_GetObjectItem(payload, "uuid");
     cJSON* content = cJSON_GetObjectItem(payload, "content");
     cJSON* result = cJSON_GetObjectItem(payload, "result");
-    if (func == NULL || !cJSON_IsString(func) ||
-        content == NULL || !cJSON_IsArray(content) ||
-        result == NULL || !cJSON_IsNumber(result)) {
+    if (func == nullptr || !cJSON_IsString(func) ||
+        uuid == nullptr || !cJSON_IsNumber(uuid) ||
+        content == nullptr || !cJSON_IsArray(content) ||
+        result == nullptr || !cJSON_IsNumber(result)) {
         cJSON_Delete(message);
         LogWarn() << "Invalid message payload";
         return;
     }
     m_func = std::string(func->valuestring);
-    int size = std::min(cJSON_GetArraySize(content), int(m_data.size()));
+    m_uuid = uuid->valueint;
+    int size = std::min(cJSON_GetArraySize(content), static_cast<int>(m_data.size()));
     for (int index = 0; index < size; index++) {
         cJSON* item = cJSON_GetArrayItem(content, index);
-        if (item == NULL) {
+        if (item == nullptr) {
             continue;
         }
         m_content.push_back(static_cast<uint8_t>(item->valueint));
@@ -77,22 +80,24 @@ Message::Message(const RawData& data) : m_valid(false), m_data(data) {
     cJSON_Delete(message);
 }
 
-Message::Message(int id, std::string type, 
-    std::string from, 
-    std::vector<std::string> to, 
-    std::string func, 
+Message::Message(int id, std::string type,
+    std::string from,
+    std::vector<std::string> to,
+    std::string func,
+    int uuid,
     std::vector<uint8_t> content, int result) {
     auto durations = std::chrono::system_clock::now().time_since_epoch();
     auto timestamp = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(durations).count());
 
     m_version = "1.0";
     m_id = id;
-    m_type = type;
+    m_type = std::move(type);
     m_timestamp = timestamp;
-    m_from = from;
-    m_to = to;
-    m_func = func;
-    m_content = content;
+    m_from = std::move(from);
+    m_to = std::move(to);
+    m_func = std::move(func);
+    m_uuid = uuid;
+    m_content = std::move(content);
     m_result = result;
     m_valid = true;
 
@@ -106,19 +111,20 @@ Message::Message(int id, std::string type,
     cJSON_AddNumberToObject(header, "timestamp", m_timestamp);
     cJSON_AddStringToObject(header, "from", m_from.data());
 
-    cJSON* to_array = cJSON_CreateArray();
-    for (int i = 0; i < m_to.size(); i++) {
-        cJSON_AddItemToArray(to_array, cJSON_CreateString(m_to.at(i).data()));
+    cJSON* toArray = cJSON_CreateArray();
+    for (auto& i : m_to) {
+        cJSON_AddItemToArray(toArray, cJSON_CreateString(i.data()));
     }
-    cJSON_AddItemToObject(header, "to", to_array);
+    cJSON_AddItemToObject(header, "to", toArray);
     cJSON_AddItemToObject(message, "header", header);
-    
+
     cJSON_AddStringToObject(payload, "func", m_func.data());
-    cJSON* content_array = cJSON_CreateArray();
-    for (int i = 0; i < m_content.size(); i++) {
-        cJSON_AddItemToArray(content_array, cJSON_CreateNumber(m_content.at(i)));
+    cJSON_AddNumberToObject(payload, "uuid", m_uuid);
+    cJSON* contentArray = cJSON_CreateArray();
+    for (unsigned char i : m_content) {
+        cJSON_AddItemToArray(contentArray, cJSON_CreateNumber(i));
     }
-    cJSON_AddItemToObject(payload, "content", content_array);
+    cJSON_AddItemToObject(payload, "content", contentArray);
     cJSON_AddNumberToObject(payload, "result", m_result);
 
     cJSON_AddItemToObject(message, "payload", payload);
@@ -195,11 +201,15 @@ void MessageProcessor::append(Type type, std::unique_ptr<Message> &message) {
         m_send.push_back(std::move(message));
         break;
     }
+    m_condition.notify_one();
 }
 
 std::unique_ptr<Message> MessageProcessor::fetch(Type type) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::unique_lock<std::mutex> lock(m_mutex);
     std::unique_ptr<Message> message = nullptr;
+    m_condition.wait(lock, [this] {
+        return (!m_recv.empty() || !m_send.empty() || m_quit);
+    });
     switch (type) {
     case Recv:
         if (!m_recv.empty()) {

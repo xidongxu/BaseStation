@@ -25,16 +25,7 @@ std::unique_ptr<Command> CommandBuilder::build(const std::string& name) {
 class HeartAndOffline: public Command {
 public:
     void execute(std::unique_ptr<Message>& message) override {
-        auto response = std::make_unique<Message>(
-            message->id(),
-            "RSP",
-            "server",
-            std::vector<std::string>{ message->from() },
-            message->func(),
-            std::vector<uint8_t>{},
-            0
-        );
-        MessageProcessor::instance().append(MessageProcessor::Send, response);
+        // No need to respond to heartbeat for now
     }
 };
 
@@ -52,11 +43,8 @@ void registerCommands() {
         "ANSWER_CALL",
         []() { return std::make_unique<AnswerCall>(); });
     CommandBuilder::instance().registerCommand(
-        "END_CALL",
-        []() { return std::make_unique<EndCall>(); });
-    CommandBuilder::instance().registerCommand(
-        "REJECT_CALL",
-        []() { return std::make_unique<RejectCall>(); });
+        "HANGUP_CALL",
+        []() { return std::make_unique<HangupCall>(); });
     CommandBuilder::instance().registerCommand(
         "SEND_MESSAGE", 
         []() { return std::make_unique<SendShortMsg>(); });

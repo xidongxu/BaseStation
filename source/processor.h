@@ -16,6 +16,7 @@ public:
             std::string from,
             std::vector<std::string> to,
             std::string func,
+            int uuid,
             std::vector<uint8_t> content, 
             int result);
     ~Message();
@@ -29,6 +30,7 @@ public:
     std::string from() { return m_from; }
     std::vector<std::string>& to() { return m_to; }
     std::string func() { return m_func; }
+    int uuid() { return m_uuid; }
     std::vector<uint8_t>& content() { return m_content; }
     int result() const { return m_result; }
     bool is_heart() const;
@@ -42,6 +44,7 @@ private:
     std::string m_from{};
     std::vector<std::string> m_to{};
     std::string m_func{};
+    int m_uuid{};
     std::vector<uint8_t> m_content{};
     int m_result{};
     RawData m_data{};

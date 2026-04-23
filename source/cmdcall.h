@@ -17,12 +17,7 @@ public:
     void execute(std::unique_ptr<Message>& message) override;
 };
 
-class EndCall : public Command {
-public:
-    void execute(std::unique_ptr<Message>& message) override;
-};
-
-class RejectCall : public Command {
+class HangupCall : public Command {
 public:
     void execute(std::unique_ptr<Message>& message) override;
 };
