@@ -42,6 +42,7 @@ public:
     void appendCall(std::shared_ptr<Call>& call);
     void removeCall(int id);
     std::shared_ptr<Call> findCall(int id);
+    void clearCall();
 
 private:
     State m_state{};

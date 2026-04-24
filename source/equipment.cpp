@@ -2,6 +2,7 @@
 #include <thread>
 #include "asio.hpp"
 #include "equipment.h"
+#include "timer.h"
 
 #define LOG_TAG "equipment"
 #include "logger.h"
@@ -49,6 +50,7 @@ bool Equipment::logout(State reason) {
     m_state = reason;
     m_session->close();
     m_session.reset();
+    clearCall();
     return true;
 }
 
@@ -75,6 +77,14 @@ std::shared_ptr<Call> Equipment::findCall(int id) {
         return nullptr;
     }
     return it->second;
+}
+
+void Equipment::clearCall() {
+    for (auto it = m_calls.begin(); it != m_calls.end();) {
+        auto timer = it->second->timer();
+        TimerManager::instance().remove(timer);
+        it = m_calls.erase(it);
+    }
 }
 
 void EquipmentManager::create(const std::vector<std::string>& numbers) {
