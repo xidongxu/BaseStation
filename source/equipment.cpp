@@ -9,6 +9,8 @@
 using namespace std;
 using asio::ip::tcp;
 
+Call::Call(int id, int timer, std::string caller, std::string called) : m_id(id), m_timer(timer), m_state(0), m_caller(caller), m_called(called) {}
+
 Equipment::Equipment(std::string number) : m_number(std::move(number)) {
     m_state = State::Offline;
     m_voice = Voice::Idle;
@@ -48,6 +50,31 @@ bool Equipment::logout(State reason) {
     m_session->close();
     m_session.reset();
     return true;
+}
+
+void Equipment::appendCall(std::shared_ptr<Call>& call) {
+    int id = call->id();
+    auto it = m_calls.find(id);
+    if (it != m_calls.end()) {
+        LogError() << "call:" << id << "already exits";
+    }
+    m_calls[id] = call;
+}
+
+void Equipment::removeCall(int id) {
+    auto it = m_calls.find(id);
+    if (it != m_calls.end()) {
+        m_calls.erase(it);
+    }
+}
+
+std::shared_ptr<Call> Equipment::findCall(int id) {
+    auto it = m_calls.find(id);
+    if (it == m_calls.end()) {
+        LogWarn() << "call:" << id << "not found";
+        return nullptr;
+    }
+    return it->second;
 }
 
 void EquipmentManager::create(const std::vector<std::string>& numbers) {
