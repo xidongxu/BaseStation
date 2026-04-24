@@ -40,6 +40,9 @@ void registerCommands() {
         "MAKE_CALL", 
         []() { return std::make_unique<MakeCall>(); });
     CommandBuilder::instance().registerCommand(
+        "RECV_CALL",
+        []() { return std::make_unique<RecvCall>(); });
+    CommandBuilder::instance().registerCommand(
         "ANSWER_CALL",
         []() { return std::make_unique<AnswerCall>(); });
     CommandBuilder::instance().registerCommand(

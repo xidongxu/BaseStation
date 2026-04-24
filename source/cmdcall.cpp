@@ -42,7 +42,7 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto to = message->to().at(0);
     auto func = message->func();
     auto uuid = message->uuid();
-    LogInfo() << "message:" << message->func() << from << "call" << to;
+    LogInfo() << "message:" << message->func() << from << "to" << to;
     auto equipment = EquipmentManager::instance().equipment(to);
     // Notify caller that the called phone number is empty.
     auto result = CALL_STATE_EMPTY_NUMBER;
@@ -111,7 +111,8 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
         CALL_FUNC,
         message->uuid(),
         message->content(), 
-        static_cast<int>(timer));
+        CALL_STATE_MO_CONN
+    );
     MessageProcessor::instance().append(MessageProcessor::Send, request);
     // Notify the caller that the called phone is ringing.
     auto response = std::make_unique<Message>(
@@ -122,16 +123,16 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
         CALL_FUNC,
         message->uuid(),
         std::vector<uint8_t>{},
-        result
+        CALL_STATE_MO_ALERT
     );
     MessageProcessor::instance().append(MessageProcessor::Send, response);
 }
 
-void AnswerCall::execute(std::unique_ptr<Message>& message) {
+void RecvCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto uuid = message->uuid();
-    LogInfo() << "message:" << message->func() << from << "answer call" << to;
+    LogInfo() << "message:" << message->func() << from << "to" << to;
     auto equipment = EquipmentManager::instance().equipment(to);
     if (!equipment || equipment->state() != Equipment::Online) {
         LogError() << "equipment:" << to << "not online";
@@ -151,17 +152,27 @@ void AnswerCall::execute(std::unique_ptr<Message>& message) {
         CALL_FUNC,
         message->uuid(),
         message->content(),
-        0
+        CALL_STATE_MT_ALERT
     );
     MessageProcessor::instance().append(MessageProcessor::Send, request);
 }
 
-void HangupCall::execute(std::unique_ptr<Message>& message) {
+void AnswerCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
-    LogInfo() << "message:" << message->func() << from << "hangup call" << to;
-    auto timer = message->result();
-    TimerManager::instance().remove(timer);
+    auto uuid = message->uuid();
+    LogInfo() << "message:" << message->func() << from << "to" << to;
+    auto equipment = EquipmentManager::instance().equipment(to);
+    if (!equipment || equipment->state() != Equipment::Online) {
+        LogError() << "equipment:" << to << "not online";
+        return;
+    }
+    auto call = equipment->findCall(uuid);
+    if (!call) {
+        LogError() << "call:" << to << "has ended or never existed";
+        return;
+    }
+    TimerManager::instance().remove(call->timer());
     auto request = std::make_unique<Message>(
         message->id(),
         "RSP",
@@ -170,7 +181,37 @@ void HangupCall::execute(std::unique_ptr<Message>& message) {
         CALL_FUNC,
         message->uuid(),
         message->content(),
-        0
+        CALL_STATE_ACTIVE
+    );
+    MessageProcessor::instance().append(MessageProcessor::Send, request);
+}
+
+void HangupCall::execute(std::unique_ptr<Message>& message) {
+    auto from = message->from();
+    auto to = message->to().at(0);
+    auto uuid = message->uuid();
+    LogInfo() << "message:" << message->func() << from << "to" << to;
+    auto equipment = EquipmentManager::instance().equipment(to);
+    if (!equipment || equipment->state() != Equipment::Online) {
+        LogError() << "equipment:" << to << "not online";
+        return;
+    }
+    auto call = equipment->findCall(uuid);
+    if (!call) {
+        LogError() << "call:" << to << "has ended or never existed";
+        return;
+    }
+    TimerManager::instance().remove(call->timer());
+    auto result = (from == call->caller()) ? CALL_STATE_MO_REL : CALL_STATE_MT_REL;
+    auto request = std::make_unique<Message>(
+        message->id(),
+        "RSP",
+        message->from(),
+        message->to(),
+        CALL_FUNC,
+        message->uuid(),
+        message->content(),
+        result
     );
     MessageProcessor::instance().append(MessageProcessor::Send, request);
 }

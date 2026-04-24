@@ -12,6 +12,11 @@ public:
     void execute(std::unique_ptr<Message>& message) override;
 };
 
+class ReciveCall : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override;
+};
+
 class AnswerCall : public Command {
 public:
     void execute(std::unique_ptr<Message>& message) override;
