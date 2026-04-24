@@ -76,6 +76,7 @@ Message::Message(const RawData& data) : m_valid(false), m_data(data) {
         }
         m_content.push_back(static_cast<uint8_t>(item->valueint));
     }
+    m_result = result->valueint;
     m_valid = true;
     cJSON_Delete(message);
 }
