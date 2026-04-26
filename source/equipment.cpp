@@ -10,7 +10,7 @@
 using namespace std;
 using asio::ip::tcp;
 
-Call::Call(int id, int timer, std::string caller, std::string called) : m_id(id), m_timer(timer), m_state(0), m_caller(caller), m_called(called) {}
+Call::Call(int id, uint64_t timer, std::string from, std::string to) : m_id(id), m_timer(timer), m_state(0), m_from(from), m_to(to) {}
 
 Equipment::Equipment(std::string number) : m_number(std::move(number)) {
     m_state = State::Offline;

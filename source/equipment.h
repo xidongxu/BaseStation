@@ -9,21 +9,21 @@
 
 class Call : public std::enable_shared_from_this<Call> {
 public:
-    Call(int id, int timer, std::string caller, std::string called);
+    Call(int id, uint64_t timer, std::string from, std::string to);
     ~Call() = default;
     int id() { return m_id; }
     int timer() { return m_timer; }
     int state() { return m_state; }
     void setState(int state) { m_state = state; }
-    std::string caller() const { return m_caller; }
-    std::string called() const { return m_called; }
+    std::string from() const { return m_from; }
+    std::string to() const { return m_to; }
 
 private:
     int m_id{};
-    int m_timer{};
     int m_state{};
-    std::string m_caller{};
-    std::string m_called{};
+    uint64_t m_timer{};
+    std::string m_from{};
+    std::string m_to{};
 };
 
 class Equipment : public std::enable_shared_from_this<Equipment> {
