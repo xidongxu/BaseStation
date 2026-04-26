@@ -43,11 +43,20 @@ void registerCommands() {
         "RECV_CALL",
         []() { return std::make_unique<RecvCall>(); });
     CommandBuilder::instance().registerCommand(
+        "RECV_RING",
+        []() { return std::make_unique<RecvRing>(); });
+    CommandBuilder::instance().registerCommand(
         "ANSWER_CALL",
         []() { return std::make_unique<AnswerCall>(); });
     CommandBuilder::instance().registerCommand(
+        "RECV_ANSWER",
+        []() { return std::make_unique<RecvAnswer>(); });
+    CommandBuilder::instance().registerCommand(
         "HANGUP_CALL",
         []() { return std::make_unique<HangupCall>(); });
+    CommandBuilder::instance().registerCommand(
+        "RECV_HANGUP",
+        []() { return std::make_unique<RecvHangup>(); });
     CommandBuilder::instance().registerCommand(
         "SEND_MESSAGE", 
         []() { return std::make_unique<SendShortMsg>(); });

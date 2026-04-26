@@ -17,12 +17,27 @@ public:
     void execute(std::unique_ptr<Message>& message) override;
 };
 
+class RecvRing : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override;
+};
+
 class AnswerCall : public Command {
 public:
     void execute(std::unique_ptr<Message>& message) override;
 };
 
+class RecvAnswer : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override;
+};
+
 class HangupCall : public Command {
+public:
+    void execute(std::unique_ptr<Message>& message) override;
+};
+
+class RecvHangup : public Command {
 public:
     void execute(std::unique_ptr<Message>& message) override;
 };

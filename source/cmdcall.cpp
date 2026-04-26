@@ -16,15 +16,15 @@ using namespace std::chrono;
 #define CALL_FUNC                   "CALL_NOTIFY"
 // define by device
 #define CALL_STATE_IDLE             0
-#define CALL_STATE_INCOMING         1
-#define CALL_STATE_RINGING          2
-#define CALL_STATE_ACTIVE           3
-#define CALL_STATE_HANGUP           4
-#define CALL_STATE_NO_ANSWER        5
+#define CALL_STATE_LINKING          1
+#define CALL_STATE_INCOMING         2
+#define CALL_STATE_RINGING          3
+#define CALL_STATE_ACTIVE           4
+#define CALL_STATE_HANGUP           5
+#define CALL_STATE_NO_ANSWER        6
 // define by station
 #define CALL_STATE_EMPTY_NUMBER     100
 #define CALL_STATE_OFFLINE          101
-#define CALL_STATE_SHUTDOWN         102
 
 void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto id = message->id();
@@ -32,10 +32,9 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto to = message->to().at(0);
     auto func = message->func();
     auto uuid = message->uuid();
-    LogInfo() << "message:" << message->raw().data();
+    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(to);
-    // Notify caller that the called phone number is empty.
-    auto result = CALL_STATE_EMPTY_NUMBER;
+    // Notify "from" that the called phone number is empty.
     if (!equipment) {
         auto response = std::make_unique<Message>(
             id,
@@ -45,14 +44,13 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
             CALL_FUNC,
             uuid,
             message->content(),
-            static_cast<int>(result)
+            CALL_STATE_EMPTY_NUMBER
         );
         MessageProcessor::instance().append(MessageProcessor::Send, response);
         return;
     }
-    // Notify caller that the called phone is not online.
+    // Notify "from" that the called phone is offline.
     if (equipment->state() != Equipment::Online) {
-        result = equipment->state() == Equipment::Offline ? CALL_STATE_OFFLINE : CALL_STATE_SHUTDOWN;
         auto response = std::make_unique<Message>(
             id,
             "RSP",
@@ -61,7 +59,7 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
             CALL_FUNC,
             uuid,
             message->content(),
-            static_cast<int>(result)
+            CALL_STATE_OFFLINE
         );
         MessageProcessor::instance().append(MessageProcessor::Send, response);
         return;
@@ -77,10 +75,10 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
             if (equipment) {
                 equipment->removeCall(uuid);
             }
-            // Notify caller no answer
+            // Notify "from" no answer
             auto response = std::make_unique<Message>(
                 id,
-                "RSP",
+                "REQ",
                 "server",
                 std::vector<std::string>{ from },
                 CALL_FUNC,
@@ -89,22 +87,34 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
                 CALL_STATE_NO_ANSWER
             );
             MessageProcessor::instance().append(MessageProcessor::Send, response);
-            // Notify called into idle
+            // Notify "to" no answer
             response = std::make_unique<Message>(
                 id,
-                "RSP",
+                "REQ",
                 "server",
                 std::vector<std::string>{ to },
                 CALL_FUNC,
                 uuid,
                 std::vector<uint8_t>{},
-                CALL_STATE_IDLE
+                CALL_STATE_NO_ANSWER
             );
             MessageProcessor::instance().append(MessageProcessor::Send, response);
         });
     auto call = std::make_shared<Call>(uuid, timer, from, to);
     equipment->appendCall(call);
-    // Notify called of incoming call
+    // Notify "from" linking
+    auto response = std::make_unique<Message>(
+        id,
+        "RSP",
+        "server",
+        std::vector<std::string>{ from },
+        CALL_FUNC,
+        uuid,
+        std::vector<uint8_t>{},
+        CALL_STATE_LINKING
+    );
+    MessageProcessor::instance().append(MessageProcessor::Send, response);
+    // Notify "to" incoming
     auto request = std::make_unique<Message>(
         message->id(), 
         message->type(), 
@@ -122,7 +132,7 @@ void RecvCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto uuid = message->uuid();
-    LogInfo() << "message:" << message->raw().data();
+    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(from);
     if (!equipment || equipment->state() != Equipment::Online) {
         LogError() << "equipment:" << to << "not online";
@@ -135,9 +145,10 @@ void RecvCall::execute(std::unique_ptr<Message>& message) {
     }
     // Not need delete timer for now
     TimerManager::instance().reset(call->timer());
+    // Notify "from" ringing
     auto request = std::make_unique<Message>(
         message->id(),
-        "RSP",
+        "REQ",
         message->from(),
         message->to(),
         CALL_FUNC,
@@ -148,11 +159,15 @@ void RecvCall::execute(std::unique_ptr<Message>& message) {
     MessageProcessor::instance().append(MessageProcessor::Send, request);
 }
 
+void RecvRing::execute(std::unique_ptr<Message>& message) {
+    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+}
+
 void AnswerCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto uuid = message->uuid();
-    LogInfo() << "message:" << message->raw().data();
+    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(from);
     if (!equipment || equipment->state() != Equipment::Online) {
         LogError() << "equipment:" << to << "not online";
@@ -163,10 +178,24 @@ void AnswerCall::execute(std::unique_ptr<Message>& message) {
         LogError() << "call:" << to << "has ended or never existed";
         return;
     }
+    // Delete timer now
     TimerManager::instance().remove(call->timer());
-    auto request = std::make_unique<Message>(
+    // Notify "from" active
+    auto response = std::make_unique<Message>(
         message->id(),
         "RSP",
+        "server",
+        std::vector<std::string>{ from },
+        CALL_FUNC,
+        uuid,
+        std::vector<uint8_t>{},
+        CALL_STATE_ACTIVE
+    );
+    MessageProcessor::instance().append(MessageProcessor::Send, response);
+    // Notify "to" active
+    auto request = std::make_unique<Message>(
+        message->id(),
+        message->type(),
         message->from(),
         message->to(),
         CALL_FUNC,
@@ -177,11 +206,15 @@ void AnswerCall::execute(std::unique_ptr<Message>& message) {
     MessageProcessor::instance().append(MessageProcessor::Send, request);
 }
 
+void RecvAnswer::execute(std::unique_ptr<Message>& message) {
+    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+}
+
 void HangupCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto uuid = message->uuid();
-    LogInfo() << "message:" << message->raw().data();
+    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(to);
     if (!equipment || equipment->state() != Equipment::Online) {
         LogError() << "equipment:" << to << "not online";
@@ -192,10 +225,24 @@ void HangupCall::execute(std::unique_ptr<Message>& message) {
         LogError() << "call:" << to << "has ended or never existed";
         return;
     }
+    // Delete timer now
     TimerManager::instance().remove(call->timer());
-    auto request = std::make_unique<Message>(
+    // Notify "from" hangup
+    auto response = std::make_unique<Message>(
         message->id(),
         "RSP",
+        "server",
+        std::vector<std::string>{ from },
+        CALL_FUNC,
+        uuid,
+        std::vector<uint8_t>{},
+        CALL_STATE_HANGUP
+    );
+    MessageProcessor::instance().append(MessageProcessor::Send, response);
+    // Notify "to" hangup
+    auto request = std::make_unique<Message>(
+        message->id(),
+        message->type(),
         message->from(),
         message->to(),
         CALL_FUNC,
@@ -204,4 +251,8 @@ void HangupCall::execute(std::unique_ptr<Message>& message) {
         CALL_STATE_HANGUP
     );
     MessageProcessor::instance().append(MessageProcessor::Send, request);
+}
+
+void RecvHangup::execute(std::unique_ptr<Message>& message) {
+    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
 }
