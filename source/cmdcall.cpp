@@ -16,8 +16,8 @@ using namespace std::chrono;
 #define CALL_FUNC                   "CALL_NOTIFY"
 // define by device
 #define CALL_STATE_IDLE             0
-#define CALL_STATE_LINKING          1
-#define CALL_STATE_INCOMING         2
+#define CALL_STATE_INCOMING         1
+#define CALL_STATE_LINKING          2
 #define CALL_STATE_RINGING          3
 #define CALL_STATE_ACTIVE           4
 #define CALL_STATE_HANGUP           5
