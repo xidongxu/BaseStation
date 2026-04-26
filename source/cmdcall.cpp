@@ -222,8 +222,16 @@ void HangupCall::execute(std::unique_ptr<Message>& message) {
     }
     auto call = equipment->findCall(uuid);
     if (!call) {
-        LogError() << "call:" << to << "has ended or never existed";
-        return;
+        equipment = EquipmentManager::instance().equipment(from);
+        if (!equipment || equipment->state() != Equipment::Online) {
+            LogError() << "equipment:" << from << "not online";
+            return;
+        }
+        call = equipment->findCall(uuid);
+        if (!call) {
+            LogError() << "call:" << to << "has ended or never existed";
+            return;
+        }
     }
     // Delete timer now
     TimerManager::instance().remove(call->timer());
