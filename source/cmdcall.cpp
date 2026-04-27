@@ -32,7 +32,7 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto to = message->to().at(0);
     auto func = message->func();
     auto uuid = message->uuid();
-    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(to);
     // Notify "from" that the called phone number is empty.
     if (!equipment) {
@@ -132,7 +132,7 @@ void RecvCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto uuid = message->uuid();
-    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(from);
     if (!equipment || equipment->state() != Equipment::Online) {
         LogError() << "equipment:" << to << "not online";
@@ -160,14 +160,14 @@ void RecvCall::execute(std::unique_ptr<Message>& message) {
 }
 
 void RecvRing::execute(std::unique_ptr<Message>& message) {
-    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
 }
 
 void AnswerCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto uuid = message->uuid();
-    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(from);
     if (!equipment || equipment->state() != Equipment::Online) {
         LogError() << "equipment:" << to << "not online";
@@ -207,14 +207,14 @@ void AnswerCall::execute(std::unique_ptr<Message>& message) {
 }
 
 void RecvAnswer::execute(std::unique_ptr<Message>& message) {
-    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
 }
 
 void HangupCall::execute(std::unique_ptr<Message>& message) {
     auto from = message->from();
     auto to = message->to().at(0);
     auto uuid = message->uuid();
-    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
     auto equipment = EquipmentManager::instance().equipment(to);
     if (!equipment || equipment->state() != Equipment::Online) {
         LogError() << "equipment:" << to << "not online";
@@ -262,5 +262,5 @@ void HangupCall::execute(std::unique_ptr<Message>& message) {
 }
 
 void RecvHangup::execute(std::unique_ptr<Message>& message) {
-    LogInfo() << "\r\n message:" << message->raw().data() << "\r\n";
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
 }

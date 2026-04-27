@@ -33,6 +33,7 @@ public:
     int uuid() { return m_uuid; }
     std::vector<uint8_t>& content() { return m_content; }
     int result() const { return m_result; }
+    std::string details(std::size_t length=256) const;
     bool is_heart() const;
 
 private:

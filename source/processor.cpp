@@ -142,6 +142,12 @@ Message::Message(int id, std::string type,
 
 Message::~Message() = default;
 
+std::string Message::details(std::size_t length) const {
+    length = (length > m_data.size() - 4) ? (m_data.size() - 4) : length;
+    std::string json(reinterpret_cast<const char *>(m_data.data() + 2), length);
+    return json;
+}
+
 bool Message::is_heart() const {
     if (!m_valid) {
         return false;
