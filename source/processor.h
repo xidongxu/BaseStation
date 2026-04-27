@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <array>
+#include <condition_variable>
 #include <deque>
 #include <memory>
 #include <mutex>
