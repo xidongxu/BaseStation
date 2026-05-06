@@ -69,7 +69,7 @@ public:
     std::unique_ptr<Message> fetch(Type type);
     void cleanup(Type type);
     std::size_t size(Type type);
-    void quit() { m_quit = true; }
+    void quit();
 
 private:
     MessageProcessor();

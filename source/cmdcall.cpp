@@ -25,6 +25,7 @@ using namespace std::chrono;
 // define by station
 #define CALL_STATE_EMPTY_NUMBER     100
 #define CALL_STATE_OFFLINE          101
+#define CALL_STATE_IMS_REJECTED     102
 
 void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto id = message->id();
@@ -33,6 +34,21 @@ void MakeCall::execute(std::unique_ptr<Message>& message) {
     auto func = message->func();
     auto uuid = message->uuid();
     LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
+    // Notify "from" that the called phone number is same with "from" phone number.
+    if (from == to) {
+        auto response = std::make_unique<Message>(
+            id,
+            "RSP",
+            "server",
+            std::vector<std::string>{ from },
+            CALL_FUNC,
+            uuid,
+            message->content(),
+            CALL_STATE_IMS_REJECTED
+        );
+        MessageProcessor::instance().append(MessageProcessor::Send, response);
+        return;
+    }
     auto equipment = EquipmentManager::instance().equipment(to);
     // Notify "from" that the called phone number is empty.
     if (!equipment) {

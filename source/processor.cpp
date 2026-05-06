@@ -263,3 +263,8 @@ size_t MessageProcessor::size(Type type) {
     }
     return size;
 }
+
+void MessageProcessor::quit() { 
+    m_quit = true;
+    m_condition.notify_all();
+}
