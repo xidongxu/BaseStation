@@ -27,6 +27,7 @@ void SendShortMsg::execute(std::unique_ptr<Message>& message) {
     auto to = message->to().at(0);
     auto func = message->func();
     auto uuid = message->uuid();
+    LogInfo() << "message:" << "\r\n" << message->details() << "\r\n";
     // Notify "from" that the sendto phone number is same with "from" phone number.
     if (from == to) {
         auto response = std::make_unique<Message>(
