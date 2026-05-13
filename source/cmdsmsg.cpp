@@ -59,6 +59,21 @@ void SendShortMsg::execute(std::unique_ptr<Message>& message) {
         MessageProcessor::instance().append(MessageProcessor::Send, response);
         return;
     }
+    // Notify "from" that the sendto phone is offline.
+    if (equipment->state() != Equipment::Online) {
+        auto response = std::make_unique<Message>(
+            id,
+            "RSP",
+            "server",
+            std::vector<std::string>{ from },
+            SMSG_FUNC,
+            uuid,
+            message->content(),
+            SMSG_STATE_OFFLINE
+        );
+        MessageProcessor::instance().append(MessageProcessor::Send, response);
+        return;
+    }
     // Notify "sendto" incoming
     auto request = std::make_unique<Message>(
         message->id(),
